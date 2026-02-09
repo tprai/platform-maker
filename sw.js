@@ -2,7 +2,7 @@
 //https://www.w3schools.in/html5/offline-web-pages
 //best website is w3schools ^
 
-const cacheName = 'v12';
+const cacheName = 'v13';
 const cachedFiles = [
   '/',
   '/index.html',
