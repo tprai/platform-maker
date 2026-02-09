@@ -180,6 +180,8 @@ function drawObj(o,transform=0) {
     if (o.id==66||o.id==67) {ctx.drawImage(jerry,(2*o.id%3+(o.s||0)%2)*16,7*16,16,16,o.x+c.x,o.y+c.y,s*o.i,s*o.i);return;}
     if (o.id==68) {ctx.drawImage(jerry,((o.s||0)%2)*16,8*16,16,16,o.x+c.x,o.y+c.y,s*o.i,s*o.i);return;}//-(mode*(o.s%2-.5)*(fCT%3)*s||0)smooth movement
     
+    if (o.id==1100) {ctx.drawImage(marioEnemies,Math.floor(fCT%20/10)*16,0*16,16,16,o.x+c.x-transform*s,o.y+c.y-transform*s*2+o.i*s*0.4,o.i*s,o.i*s*0.6);return;}
+    if (o.id==1200) {ctx.drawImage(marioShell,0,0,16,13,o.x+c.x-transform*s*3,o.y+c.y-transform*s*6+o.i*s*0.2,o.i*s,o.i*s*0.8);return;}
     return;}
 function respawn() {
     mode=1;
@@ -458,11 +460,11 @@ if (mode==1&&!won&&deathTimer==0) {
         let O=movingEnemies[i];
         if (O.s>3) O.s=0;
         if (O.id==64){
-            if (O.s%2==0){if (!some(objCuld,o=>(o.c!=0&&o.x<O.x+s*O.c&&o.x+s*o.c>O.x&&o.y==O.y+O.c*s)||((o.id==63||o.id==64||o.id==65)&&o.x<O.x+s*O.c&&o.x+s*o.c>O.x&&o.y==O.y+O.c*s))) {O.y+=s;} else {O.s=1;}
-            } else       {if (!some(objCuld,o=>(o.c!=0&&o.x<O.x+s*O.c&&o.x+s*o.c>O.x&&O.y==o.y+o.c*s)||((o.id==63||o.id==64||o.id==65)&&o.x<O.x+s*O.c&&o.x+s*o.c>O.x&&O.y==o.y+o.c*s))) {O.y-=s;} else {O.s=0;}}
+            if (O.s%2==0){if (!some(objCuld,o=>o.c!=0&&o.x<O.x+s*O.c&&o.x+s*o.c>O.x&&o.y==O.y+O.c*s)) {O.y+=s;} else {O.s=1;}
+            } else       {if (!some(objCuld,o=>o.c!=0&&o.x<O.x+s*O.c&&o.x+s*o.c>O.x&&O.y==o.y+o.c*s)) {O.y-=s;} else {O.s=0;}}
         } else if (O.id==63){
-            if (O.s%2==0){if (!some(objCuld,o=>(o.c!=0&&o.y<O.y+s*O.c&&o.y+s*o.c>O.y&&o.x==O.x+O.c*s)||((o.id==63||o.id==64||o.id==65)&&o.y<O.y+s*O.c&&o.y+s*o.c>O.y&&o.x==O.x+O.c*s))) {O.x+=s;} else {O.s=1;}
-            } else       {if (!some(objCuld,o=>(o.c!=0&&o.y<O.y+s*O.c&&o.y+s*o.c>O.y&&O.x==o.x+o.c*s)||((o.id==63||o.id==64||o.id==65)&&o.y<O.y+s*O.c&&o.y+s*o.c>O.y&&O.x==o.x+o.c*s))) {O.x-=s;} else {O.s=0;}}
+            if (O.s%2==0){if (!some(objCuld,o=>o.c!=0&&o.y<O.y+s*O.c&&o.y+s*o.c>O.y&&o.x==O.x+O.c*s)) {O.x+=s;} else {O.s=1;}
+            } else       {if (!some(objCuld,o=>o.c!=0&&o.y<O.y+s*O.c&&o.y+s*o.c>O.y&&O.x==o.x+o.c*s)) {O.x-=s;} else {O.s=0;}}
         } else {
             if (!O.vy)O.vy=0;
             let yC=filter(objCuld,o=>o.x+o.c*s>O.x&&o.x<O.x+O.c*s&&o.y>=O.y+s*O.c&&o.y<=O.y+s*O.c+O.vy&&O!=o).sort((a,b)=>Math.sign(O.y-a.y)*(a.y-b.y))[0];
@@ -470,15 +472,46 @@ if (mode==1&&!won&&deathTimer==0) {
                 O.y=yC.y-O.c*s;O.vy=0;
             } else O.y+=O.vy;
             O.vy+=s/4;
-            if (O.s%4==2){if (!some(objCuld,o=>(o.c!=0&&o.y<O.y+s*O.c&&o.y+s*o.c>O.y&&o.x==O.x+O.c*s)||((o.id==63||o.id==64||o.id==65)&&o.y<O.y+s*O.c&&o.y+s*o.c>O.y&&o.x==O.x+O.c*s))) {O.x+=s/2;O.s+=1;} else {O.s=1;}
-            } else if (O.s%4==0){if (!some(objCuld,o=>(o.c!=0&&o.y<O.y+s*O.c&&o.y+s*o.c>O.y&&O.x==o.x+o.c*s)||((o.id==63||o.id==64||o.id==65)&&o.y<O.y+s*O.c&&o.y+s*o.c>O.y&&O.x==o.x+o.c*s))) {O.x-=s/2;O.s+=1;} else {O.s=3;}
+            if (O.s%4==2){if (!some(objCuld,o=>o.c!=0&&o.y<O.y+s*O.c&&o.y+s*o.c>O.y&&o.x==O.x+O.c*s)) {O.x+=s/2;O.s+=1;} else {O.s=1;}
+            } else if (O.s%4==0){if (!some(objCuld,o=>o.c!=0&&o.y<O.y+s*O.c&&o.y+s*o.c>O.y&&O.x==o.x+o.c*s)) {O.x-=s/2;O.s+=1;} else {O.s=3;}
             } else {O.s-=1;}}
         
-        //kill offscreen enemies
+        //kill out of bounds enemies
         if (O.x<c.xMin-O.i*s||O.x>s*10*24+c.xMax||O.y>s*10*16+c.yMax||O.y<c.yMin-s*10*6.7){
             objects=filter(objects,o=>o!=O);
             objCuld=filter(objCuld,o=>o!=O);}}
     
+    //dead goomba
+    let deadGoombas=filter(objCuld,o=>o.id==1100);
+    for(let i=0;i<deadGoombas.length;i++) {
+        let O=deadGoombas[i];
+        O.s+=1;
+        if (O.sigma>28) objects=filter(objects,o=>o!=O);console.log(10);}
+    
+    //mario shells
+    let deadKTs=filter(objCuld,o=>o.id==1200);
+    for(let i=0;i<deadKTs.length;i++) {
+        let O=deadKTs[i];
+            if (!O.vy) O.vy=0;
+            let yC2=filter(objCuld,o=>o.x+o.c*s>O.x&&o.x<O.x+O.c*s&&o.y>=O.y+s*O.c&&o.y<=O.y+s*O.c+O.vy&&O!=o).sort((a,b)=>Math.sign(O.y-a.y)*(a.y-b.y))[0];
+            if (yC2) {
+                O.y=yC2.y-O.c*s;O.vy=0;
+            } else O.y+=O.vy;
+            O.vy+=s/4;
+            if (O.s==1) {if (!some(objCuld,o=>o.c!=0&&o.y<O.y+s*O.c&&o.y+s*o.c>O.y&&o.x==O.x+O.c*s)) {O.x=O.x+s-O.x%s} else {O.s=2;}
+            } else if (O.s==2) {if (!some(objCuld,o=>o.c!=0&&o.y<O.y+s*O.c&&o.y+s*o.c>O.y&&O.x==o.x+o.c*s)) {O.x-=s} else {O.s=1;}
+            }
+            if (O.s==0){
+                if (p.y+p.h*s>=O.y&&p.y<O.y+O.c*s&&p.x+p.w*s>O.x-s&&p.x<O.x+O.c*s+s){
+                    if (p.x+p.w*s/2<=O.x+O.c*s/2){
+                        O.s=1;
+                    } else O.s=2;
+                    if (p.y+p.h*s<=O.y) p.vy=-s*2;}
+            } else if (O.x<p.x+p.w*s&&O.x+O.c*s>p.x&&p.y+p.h*s==O.y) {O.s=0;p.vy=-s*2;}
+            if (O.x<p.x+s*p.w&&O.x+s*O.c>p.x&&O.y<p.y+p.h*s&&O.y+s*O.c>p.y)deathTimer=1;
+            }
+    
+    //movement input
     if (keyAPressed||keyLeftPressed){
         p.vx=Math.max(-p.vMax*s,Math.min(-s,p.vx-s));
     } else if (keyDPressed||keyRightPressed){
@@ -488,12 +521,13 @@ if (mode==1&&!won&&deathTimer==0) {
         p.vy=-s*p.jumpPower;
     }
     jump=false;
+    
     //spring
     if (some(objCuld,o=>o.id==58&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&p.y+p.h*s==o.y)) p.vy=-s*6;
     if (some(objCuld,o=>o.id==58&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&p.y==o.y+o.i*s)) p.vy=s*2;
     
-    //player collisions
-    let collidable=filter(objCuld,o=>o.c!=0&&o.x<p.x+s*p.w+Math.max(p.vx,0)&&o.x+o.c*s>p.x+Math.min(p.vx,0)&&o.y<p.y+s*p.h+Math.max(p.vy,0)&&o.y+o.c*s>p.y+Math.min(p.vy,0)&&!(o.x+o.c*s>p.x&&o.x<p.x+p.w*s&&o.y+o.c*s>p.y&&o.y<p.y+p.h*s));//if within player velocities and if not overlapping with player
+    //player collisions. collidable=if within player velocities and if not overlapping with player
+    let collidable=filter(objCuld,o=>o.c!=0&&o.x<p.x+s*p.w+Math.max(p.vx,0)&&o.x+o.c*s>p.x+Math.min(p.vx,0)&&o.y<p.y+s*p.h+Math.max(p.vy,0)&&o.y+o.c*s>p.y+Math.min(p.vy,0)&&!(o.x+o.c*s>p.x&&o.x<p.x+p.w*s&&o.y+o.c*s>p.y&&o.y<p.y+p.h*s));
     let yC=filter(collidable,o=>o.x+o.c*s>p.x&&o.x<p.x+p.w*s).sort((a,b)=>Math.sign(p.y-a.y)*(b.y-a.y))[0];
     let xC=filter(collidable,o=>o.y+o.c*s>p.y&&o.y<p.y+p.h*s).sort((a,b)=>Math.sign(p.x-a.x)*(b.x-a.x))[0];
     if (collidable.length>0&&!xC&&!yC) {
@@ -514,9 +548,15 @@ if (mode==1&&!won&&deathTimer==0) {
     p.vy=Math.min(p.vy+s/4,s*10);//gravity
 
     //stomp on enemies
-    let stompedEnemies=filter(objCuld,o=>(o.id==11||o.id==12||o.id==63||o.id==64||o.id==65)&&o.x-s<p.x+s*p.w&&o.x-s+s*o.i>p.x&&p.y+p.h*s>o.y-s&&p.y+p.h*s<o.y-s+o.i*s*.2);
+    let stompedEnemies=filter(objCuld,o=>(o.id==11||o.id==12||o.id==63||o.id==64||o.id==65)&&o.x<p.x+p.w*s&&o.x+o.c*s>p.x&&p.y+p.h*s>=o.y-s&&p.y+p.h*s<=o.y);
     for(let i=0;i<stompedEnemies.length;i++) {
         let O=stompedEnemies[i];
+        if (O.id==11||O.id==12){
+            var O2={...O};
+            O2.id*=100;O2.c=(O.id==11)?0:O2.c/2;O2.s=0;
+            if (O.id==12) {O2.x+=2*s;O2.y+=3*s;}
+            objects.push(O2);
+        }
         objects=filter(objects,o=>o!=O);
         objCuld=filter(objCuld,o=>o!=O);
         p.vy=-s*3;}
@@ -525,7 +565,7 @@ if (mode==1&&!won&&deathTimer==0) {
     let breakableObjs=filter(objCuld,o=>o.d[0]==1)
         for(let i=0;i<breakableObjs.length;i++) {
             let O=breakableObjs[i];
-            if (O.x<p.x+s*p.w&&O.x+s*O.c>p.x&&p.y==O.y+O.c*s) {
+            if (O.x<p.x+s*p.w&&O.x+s*O.c>p.x&&p.y==O.y+O.c*s||some(objCuld,o=>o.id==1200&&O.y<o.y+o.c*s&&O.y+O.c*s>o.y&&(o.x==O.x+O.c*s+s&&o.s==1||o.x+o.c*s==O.x-s&&o.s==2))) {
                 objects=filter(objects,o=>o!=O);
                 objCuld=filter(objCuld,o=>o!=O);}}
     
@@ -595,10 +635,10 @@ if (mode==1&&!won&&deathTimer==0) {
         ||some(objCuld,o=>(o.id==11||o.id==12||o.id==26||o.id==62||o.id==63||o.id==64||o.id==65)&&o.x-s<p.x+s*p.w&&o.x-s+s*o.i>p.x&&o.y-s<p.y+p.h*s&&o.y-s+s*o.i>p.y)) {deathTimer=1;}
 
 } else if (mode==0) {
-    if (keyWPressed||keyUpPressed) c.y+=3*s;
-    if (keyAPressed||keyLeftPressed) c.x+=3*s;
-    if (keySPressed||keyDownPressed) c.y-=3*s;
-    if (keyDPressed||keyRightPressed) c.x-=3*s;
+    if (keyWPressed||keyUpPressed) c.y+=3*s*c.z;
+    if (keyAPressed||keyLeftPressed) c.x+=3*s*c.z;
+    if (keySPressed||keyDownPressed) c.y-=3*s*c.z;
+    if (keyDPressed||keyRightPressed) c.x-=3*s*c.z;
     if (mouseZ==1) {
         if (mouseY<=canvas.height/screenHeightBlocks*(screenHeightBlocks-4)) {
             let X=Math.floor((mouseX-c.x)/(s*editGridSize));
