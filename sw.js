@@ -2,7 +2,7 @@
 //https://www.w3schools.in/html5/offline-web-pages
 //best website is w3schools ^
 
-const cacheName = 'v11';
+const cacheName = 'v12';
 const cachedFiles = [
   '/',
   '/index.html',
@@ -27,6 +27,7 @@ self.addEventListener('activate', event => {
       return Promise.all(
         cacheNames.map(cache => {
           if (!cacheWhitelist.includes(cache)) {
+            alert('New version of game detected. Refresh page to update.');
             return caches.delete(cache);
           }
         })
