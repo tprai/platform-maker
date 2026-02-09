@@ -486,7 +486,7 @@ if (mode==1&&!won&&deathTimer==0) {
     for(let i=0;i<deadGoombas.length;i++) {
         let O=deadGoombas[i];
         O.s+=1;
-        if (O.sigma>28) objects=filter(objects,o=>o!=O);console.log(10);}
+        if (O.s>28) objects=filter(objects,o=>o!=O);console.log(o.);}
     
     //mario shells
     let deadKTs=filter(objCuld,o=>o.id==1200);
@@ -509,6 +509,9 @@ if (mode==1&&!won&&deathTimer==0) {
                     if (p.y+p.h*s<=O.y) p.vy=-s*2;}
             } else if (O.x<p.x+p.w*s&&O.x+O.c*s>p.x&&p.y+p.h*s==O.y) {O.s=0;p.vy=-s*2;}
             if (O.x<p.x+s*p.w&&O.x+s*O.c>p.x&&O.y<p.y+p.h*s&&O.y+s*O.c>p.y)deathTimer=1;
+            if (O.x<c.xMin-O.i*s||O.x>s*10*24+c.xMax||O.y>s*10*16+c.yMax||O.y<c.yMin-s*10*6.7){
+                objects=filter(objects,o=>o!=O);
+                objCuld=filter(objCuld,o=>o!=O);}
             }
     
     //movement input
