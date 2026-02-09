@@ -350,6 +350,7 @@ let editChannel=0;
 let editBlockData=[0,0,0,0];
 let editBDId=0;//break,move,powerup
 let backgroundColor="rgb(141,255,163)";
+let others=[];
 let objects=[];
 if (true) {
     objects=[//xpos (pixels), ypos (pixels), image id, collision size, state, image size, layer, data
@@ -403,6 +404,11 @@ if (true) {
     {x: 230, y: 0, id: 54, c:10, i:10, l:1, s:0, d:[0,0,0,0]}];}//if (true) so array is collabsible
 objects=sizedLevel();
 let previousObjects=[toSave(objects)];
+/*let url = new URL(window.location.toLocaleString()).searchParams;let urlObjs=url.get('s');
+if (urlObjs) {try{loadSettings(urlObjs);objects=toObjects(urlObjs.substring(urlObjs.indexOf("–")+1));objects=sizedLevel();if (toSave(objects)!=previousObjects[0]){previousObjects.unshift(toSave(objects));toPlayMode();}}catch(e){alert("Error Loading Level Data");}
+} else window.location.replace('https://platform-maker-17774376.codehs.me/index.html?s=platformMaker-141,255,163-1.5,4,6,8%E2%80%93H9Y11q54C1s4I1L0d0-H8Y11q54C1s4I1L0d1000-H7Y11q54C1s4I1L0d0-H6Y11q54C1s4I1L0d0-H5Y11q54C1s4I1L0d0-H4Y11q54C1s4I1L0d0-H3Y11q54C1s4I1L0d0-H2Y11q54C1s4I1L0d0-H1Y11q54C1s4I1L0d0-X0Y11q54C1s4I1L0d0-X1Y11q54C1s4I1L0d0-X2Y11q54C1s4I1L0d0-X3Y11q54C1s4I1L0d0-X4Y11q54C1s4I1L0d0-X6Y11q54C1s4I1L0d0-X7Y11q54C1s4I1L0d0-X8Y11q54C1s4I1L0d0-X9Y11q54C1s4I1L0d0-X10Y11q54C1s4I1L0d0-X11Y11q54C1s4I1L0d0-X12Y11q54C1s4I1L0d0-X13Y11q54C1s4I1L0d0-X14Y11q54C1s4I1L0d0-X15Y11q54C1s4I1L0d0-X16Y11q54C1s4I1L0d0-X17Y11q54C1s4I1L0d0-H9Y10q54C1s4I1L0d0-H9Y9q54C1s4I1L0d0-H9Y8q54C1s4I1L0d0-H9Y7q54C1s4I1L0d0-H9Y6q54C1s4I1L0d0-H9Y5q54C1s4I1L0d0-H9Y4q54C1s4I1L0d0-H9Y3q54C1s4I1L0d0-H9Y2q54C1s4I1L0d0-H9Y1q54C1s4I1L0d0-H9Y0q54C1s4I1L0d0-H9K1q54C1s4I1L0d0-H9K2q54C1s4I1L0d0-H9K3q54C1s4I1L0d0-H9K4q54C1s4I1L0d0-H9K5q54C1s4I1L0d0-H9K6q54C1s4I1L0d0-H9K7q54C1s4I1L0d0-H9K8q54C1s4I1L0d0-H9K9q54C1s8I1L0d0-X17Y10q54C1s4I1L0d0-X17Y9q54C1s4I1L0d0-X17Y8q54C1s4I1L0d0-X17Y7q54C1s4I1L0d0-X17Y6q54C1s4I1L0d0-X...7q54C1s4I1L0d0-X2Y6q54C1s4I1L0d0-X2Y5q54C1s4I1L0d0-X3Y10q53C0s4I1L0d0-H6Y7q25C0s8I1L0d0-H9K10q54C1s8I1L0d0-H9K11q54C1s8I1L0d0-H9K12q54C1s8I1L0d0-H9K13q54C1s8I1L0d0-H9K14q54C1s8I1L0d0-H9K15q54C1s8I1L0d0-H9K16q54C1s8I1L0d0-H9K17q54C1s8I1L0d0-H9K18q54C1s8I1L0d0-H9K19q54C1s8I1L0d0-H9K20q54C1s8I1L0d0-H8K20q54C1s8I1L0d0-H7K20q54C1s8I1L0d0-H6K20q54C1s8I1L0d0-H5K20q54C1s8I1L0d0-H4K20q54C1s8I1L0d0-H3K20q54C1s8I1L0d0-H2K20q54C1s8I1L0d0-H1K20q54C1s8I1L0d0-X0K20q54C1s8I1L0d0-X1K20q54C1s8I1L0d0-X2K20q54C1s8I1L0d0-X3K20q54C1s8I1L0d0-X4K20q54C1s8I1L0d0-X5K20q54C1s8I1L0d0-X6K20q54C1s8I1L0d0-X7K20q54C1s8I1L0d0-X8K20q54C1s8I1L0d0-X9K20q54C1s8I1L0d0-X10K20q54C1s8I1L0d0-X11K20q54C1s8I1L0d0-X12K20q54C1s8I1L0d0-X13K20q54C1s8I1L0d0-X14K20q54C1s8I1L0d0-X15K20q54C1s8I1L0d0-X17K12q54C1s8I1L0d0-X17K13q54C1s8I1L0d0-X17K14q54C1s8I1L0d0-X17K15q54C1s8I1L0d0-X17K16q54C1s8I1L0d0-X17K17q54C1s8I1L0d0-X17K18q54C1s8I1L0d0-X17K19q54C1s8I1L0d0-X17K20q54C1s8I1L0d0-X16K20q54C1s8I1L0d0-X17K10q54C1s8I1L0d0-X17K11q54C1s8I1L0d0');
+*/
+
 
 //main loop
 function t() {
@@ -424,7 +430,7 @@ if (mode==1&&!won&&deathTimer==0) {
     c.y=-Math.max(c.yMin+Math.min(0,(p.y-c.yMax-s*20)/1.5),Math.min(c.yMax,-c.y+c.vy));
     
     //culling
-    var objCuld=filter(objects,o=>o.d[3]==1||o.x>=-c.x-s*20&&o.x<=-c.x+canvas.width+s*10&&o.y>=-c.y-s*20&&o.y<=-c.y+canvas.height+s*10);
+    var objCuld=filter(objects,o=>o.d[3]==1||o.x>=-c.x-s*20&&o.x<=-c.x+canvas.width+s*10&&o.y>=-c.y-s*20&&o.y<=-c.y+canvas.height+s*40);
     
     
     //Lock Detection (occurs before colision)
@@ -486,7 +492,7 @@ if (mode==1&&!won&&deathTimer==0) {
     for(let i=0;i<deadGoombas.length;i++) {
         let O=deadGoombas[i];
         O.s+=1;
-        if (O.s>28) objects=filter(objects,o=>o!=O);console.log(o.);}
+        if (O.s>28) objects=filter(objects,o=>o!=O);}
     
     //mario shells
     let deadKTs=filter(objCuld,o=>o.id==1200);
@@ -647,7 +653,7 @@ if (mode==1&&!won&&deathTimer==0) {
             let X=Math.floor((mouseX-c.x)/(s*editGridSize));
             let Y=Math.floor((mouseY-c.y)/(s*editGridSize));
             if (editObjId>68||(editObjId>12&&editObjId<50)&&editObjId!=25&&editObjId!=26) {
-                objects=filter(objects,o=>!(o.x==X*s*editSize&&o.y==Y*s*editSize&&o.l==editLayer));
+                objects=filter(objects,o=>!(o.x==X*s*editGridSize&&o.y==Y*s*editGridSize&&o.l==editLayer));
             } else {
             let oI=objects.findIndex(o=>o.x==X*s*editGridSize&&o.y==Y*s*editGridSize&&o.l==editLayer);
             if(oI!=-1){
@@ -735,7 +741,7 @@ requestAnimationFrame(f);
 /* TO DO
   - turn player into object
   - add levels menu
-  - make koopatroopa shell
   - powerups
   - moving blocks left/right
+  - 
  */
