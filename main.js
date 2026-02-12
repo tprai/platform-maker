@@ -171,6 +171,7 @@ function drawRect(x,y,w,h,C){
     ctx.fillStyle="rgb("+C+")";
     ctx.fillRect(x+c.x,y+c.y,w,h);}
 function drawObj(o,transform=0) {
+    if (o.id==9999) return; // Don't render hitboxes
     if (o.id==0) {
         drawRect(o.x,o.y,s*o.i,s*o.i,"0,0,0");return;}
     if (o.id==1) {
@@ -203,6 +204,9 @@ function respawn() {
     mode=1;
     deathTimer=0;
     
+    // Remove old hitboxes
+    objects = objects.filter(o => o.id !== 9999);
+    
     // Find all spawn blocks
     let spawnBlocks = objects.filter(o => o.id == 25);
     
@@ -213,9 +217,48 @@ function respawn() {
         // Create a player for each spawn block
         spawnBlocks.forEach(spawn => {
             let player = new Player(
-                spawn.x + spawn.i * s / 2 - 3 * s,
-                spawn.y + spawn.i * s / 2 - 4 * s
+                spawn.x + spawn.i * s / 2 - p.w * s / 2,
+                spawn.y + spawn.i * s / 2 - p.h * s / 2
             );
+            // Each player remembers their own spawn block
+            player.spawnBlock = spawn;
+            
+            // Create hitbox for this player
+            let hitbox = {
+                x: player.x,
+                y: player.y,
+                id: 9999,
+                c: player.w,
+                h: player.h,
+                i: 1,
+                l: 99,
+                s: 0,
+                d: [0,0,0,0],
+                player: player
+            };
+            player.hitbox = hitbox;
+            objects.push(hitbox);
+            
+            players.push(player);
+        });
+    } else {
+        // Default spawn if no spawn blocks
+        let player = new Player(0, 0);
+        let hitbox = {
+            x: player.x,
+            y: player.y,
+            id: 9999,
+            c: player.w,
+            h: player.h,
+            i: 1,
+            l: 99,
+            s: 0,
+            d: [0,0,0,0],
+            player: player
+        };
+        player.hitbox = hitbox;
+        objects.push(hitbox);
+        players.push(player);
             players.push(player);
         });
     } else {
@@ -259,13 +302,14 @@ function collideY(player, o=6.7) {
     if (o==6.7) {
         player.y+=player.vy;
     } else {
+    let objHeight = (o.h !== undefined) ? o.h * s : o.c * s;
     if (player.vy>0) {
         if (player.y+player.h*s+player.vy>o.y) {
             player.y=o.y-player.h*s;player.vy=0;player.jump=true;
         } else {player.y+=player.vy;}
     } else {
-        if (player.y+player.vy<o.y+o.c*s) {
-            player.y=o.y+o.c*s;player.vy=0;
+        if (player.y+player.vy<o.y+objHeight) {
+            player.y=o.y+objHeight;player.vy=0;
         } else {player.y+=player.vy;}
     }}}
 function getCollision(id) {//when placing in  editore
@@ -393,6 +437,10 @@ class Player {
         this.y = y;
         this.vx = 2;
         this.vy = 0;
+        this.vMax = p.vMax;
+        this.jumpPower = p.jumpPower;
+        this.w = p.w;
+        this.h = p.h;
         this.vMax = 1.5;
         this.jumpPower = 4;
         this.w = 6;
@@ -407,12 +455,37 @@ class Player {
         this.invincible = false;
         this.invincibleTimer = 0;
         this.powered = false; // second life powerup (like Super Mario)
+        this.checkpoint = null; // Individual checkpoint
+        this.spawnBlock = null; // Remember spawn block
+        this.hitbox = null; // Reference to hitbox object
+    }
+    
+    respawnPlayer() {
+        // Respawn this player at their checkpoint or spawn point
+        if (this.checkpoint) {
+            this.x = this.checkpoint.x + this.checkpoint.i * s / 2 - this.w * s / 2;
+            this.y = this.checkpoint.y + this.checkpoint.i * s / 2 - this.h * s / 2;
+        } else if (this.spawnBlock) {
+            this.x = this.spawnBlock.x + this.spawnBlock.i * s / 2 - this.w * s / 2;
+            this.y = this.spawnBlock.y + this.spawnBlock.i * s / 2 - this.h * s / 2;
+        } else {
+            this.x = this.startX;
+            this.y = this.startY;
+        }
+        this.vx = 0;
+        this.vy = 0;
+        this.deathTimer = 0;
+        this.invincible = false;
+        this.invincibleTimer = 0;
+        this.powered = false;
+        this.h = p.h; // Reset to base height
     }
     
     takeDamage() {
         if (this.invincible) return false;
         if (this.powered) {
             this.powered = false;
+            this.h = p.h; // Shrink back to base size
             this.invincible = true;
             this.invincibleTimer = 120; // 2 seconds of invincibility
             return false;
@@ -658,6 +731,70 @@ if (mode==1&&!won&&deathTimer==0) {
             others=filter(others,o=>o!=O);}}
     
     
+    // Update hitboxes to follow players
+    players.forEach(player => {
+        if (player.hitbox) {
+            player.hitbox.x = player.x;
+            player.hitbox.y = player.y;
+            player.hitbox.c = player.w;
+            player.hitbox.h = player.h;
+        }
+    });
+    
+    // Process each player independently
+    players.forEach(player => {
+        //movement input
+        if (keyAPressed||keyLeftPressed){
+            player.vx=Math.max(-player.vMax*s,Math.min(-s,player.vx-s));
+        } else if (keyDPressed||keyRightPressed){
+            player.vx=Math.min(player.vMax*s,Math.max(s,player.vx+s));
+        } else player.vx=0;
+        if (player.jump&&(keyWPressed||keyUpPressed||keySpacePressed)) {
+            player.vy=-s*player.jumpPower;
+            player.jump=false; // Consume jump immediately
+        }
+        
+        //spring
+        if (some(objCuld,o=>o.id==58&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&player.y+player.h*s==o.y)) player.vy=-s*6;
+        if (some(objCuld,o=>o.id==58&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&player.y==o.y+o.i*s)) player.vy=s*2;
+        
+        //player collisions. collidable=if within player velocities and if not overlapping with player
+        let collidable=filter(objCuld,o=>{
+            // Skip this player's own hitbox AND other player hitboxes for now (handled separately below)
+            if (o.id === 9999) return false;
+            let objHeight = (o.h !== undefined) ? o.h * s : o.c * s;
+            return o.c!=0&&o.x<player.x+s*player.w+Math.max(player.vx,0)&&o.x+o.c*s>player.x+Math.min(player.vx,0)&&o.y<player.y+s*player.h+Math.max(player.vy,0)&&o.y+objHeight>player.y+Math.min(player.vy,0)&&!(o.x+o.c*s>player.x&&o.x<player.x+player.w*s&&o.y+objHeight>player.y&&o.y<player.y+player.h*s);
+        });
+        
+        // Add other players' hitboxes for player-to-player collision
+        let otherPlayerHitboxes = filter(objCuld, o => {
+            if (o.id !== 9999 || !o.player || o.player === player) return false;
+            let objHeight = (o.h !== undefined) ? o.h * s : o.c * s;
+            // Check if hitbox is within collision range and not deeply overlapping (80% threshold)
+            let overlapX = Math.min(player.x + player.w * s, o.x + o.c * s) - Math.max(player.x, o.x);
+            let overlapY = Math.min(player.y + player.h * s, o.y + objHeight) - Math.max(player.y, o.y);
+            if (overlapX > player.w * s * 0.8 || overlapY > player.h * s * 0.8) return false; // Skip if deeply overlapping
+            return o.x<player.x+s*player.w+Math.max(player.vx,0)&&o.x+o.c*s>player.x+Math.min(player.vx,0)&&o.y<player.y+s*player.h+Math.max(player.vy,0)&&o.y+objHeight>player.y+Math.min(player.vy,0)&&!(o.x+o.c*s>player.x&&o.x<player.x+player.w*s&&o.y+objHeight>player.y&&o.y<player.y+player.h*s);
+        });
+        collidable = collidable.concat(otherPlayerHitboxes);
+        let yC=filter(collidable,o=>o.x+o.c*s>player.x&&o.x<player.x+player.w*s).sort((a,b)=>-(b.y-a.y))[0];
+        let xC=filter(collidable,o=>o.y+o.c*s>player.y&&o.y<player.y+player.h*s).sort((a,b)=>-(b.x-a.x))[0];
+        if (collidable.length>0&&!xC&&!yC) {
+            player.x+=player.vx;
+            yC=filter(collidable,o=>o.x+o.c*s>player.x&&o.x<player.x+player.w*s).sort((a,b)=>-(b.y-a.y))[0];
+            collideY(player,yC);
+        } else if (yC) {
+            collideY(player,yC);
+            xC=filter(collidable,o=>o.y+o.c*s>player.y&&o.y<player.y+player.h*s).sort((a,b)=>-(b.x-a.x))[0];
+            collideX(player,xC);
+        } else if (xC) {
+            collideX(player,xC);
+            yC=filter(collidable,o=>o.x+o.c*s>player.x&&o.x<player.x+player.w*s).sort((a,b)=>-(b.y-a.y))[0];
+            collideY(player,yC);
+        } else {
+            player.x+=player.vx;
+            player.y+=player.vy;}
+        player.vy=Math.min(player.vy+s/4,s*10);//gravity
     //movement input
     if (keyAPressed||keyLeftPressed){
         p.vx=Math.max(-p.vMax*s,Math.min(-s,p.vx-s));
@@ -765,6 +902,16 @@ if (mode==1&&!won&&deathTimer==0) {
             player.invincibleTimer = 300; // 5 seconds of invincibility
         }
         
+        // Second life powerup (mushroom - id 14) - grows player
+        if(some(objCuld,o=>o.id==14&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y)) {
+            objects=filter(objects,o=>!(o.id==14&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y));
+            if (!player.powered) {
+                // Grow player height and move up to prevent clipping into ground
+                let oldHeight = player.h;
+                player.h = p.h + 2; // Grow by 2 blocks from base
+                player.y -= (player.h - oldHeight) * s; // Move up by the growth amount
+                player.powered = true;
+            }}
         // Second life powerup (mushroom - id 4)
         if(some(objCuld,o=>o.id==4&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y)) {
             objects=filter(objects,o=>!(o.id==4&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y));
