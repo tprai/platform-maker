@@ -418,12 +418,14 @@ class Player {
         this.invincible = false;
         this.invincibleTimer = 0;
         this.powered = false;
+        this.h = 8; // Reset to normal height
     }
     
     takeDamage() {
         if (this.invincible) return false;
         if (this.powered) {
             this.powered = false;
+            this.h = 8; // Shrink back to normal size
             this.invincible = true;
             this.invincibleTimer = 120; // 2 seconds of invincibility
             return false;
@@ -695,6 +697,7 @@ if (mode==1&&!won&&deathTimer==0) {
         }
     }
     
+    //mario shells - check all players
     //mario shells
     let deadKTs=filter(objCuld,o=>o.id==1200);
     for(let i=0;i<deadKTs.length;i++) {
@@ -708,14 +711,32 @@ if (mode==1&&!won&&deathTimer==0) {
             if (O.s==1) {if (!some(objCuld,o=>o.c!=0&&o.y<O.y+s*O.c&&o.y+s*o.c>O.y&&o.x==O.x+O.c*s)) {O.x=O.x+s-O.x%s} else {O.s=2;}
             } else if (O.s==2) {if (!some(objCuld,o=>o.c!=0&&o.y<O.y+s*O.c&&o.y+s*o.c>O.y&&O.x==o.x+o.c*s)) {O.x=O.x-s-O.x%s} else {O.s=1;}
             }
-            if (O.s==0){
-                if (p.y+p.h*s>=O.y&&p.y<O.y+O.c*s&&p.x+p.w*s>O.x-s&&p.x<O.x+O.c*s+s){
-                    if (p.x+p.w*s/2<=O.x+O.c*s/2){
-                        O.s=1;
-                    } else O.s=2;
-                    if (p.y+p.h*s<=O.y) p.vy=-s*2;}
-            } else if (O.x<p.x+p.w*s&&O.x+O.c*s>p.x&&p.y+p.h*s==O.y) {O.s=0;p.vy=-s*2;}
-            if (O.x<p.x+s*p.w&&O.x+s*O.c>p.x&&O.y<p.y+p.h*s&&O.y+s*O.c>p.y)deathTimer=1;
+            
+            // Check shell interaction with ALL players
+            for(let j=0;j<players.length;j++) {
+                let pl=players[j];
+                if (O.s==0){
+                    // Shell stopped - any player can kick it
+                    if (pl.y+pl.h*s>=O.y&&pl.y<O.y+O.c*s&&pl.x+pl.w*s>O.x-s&&pl.x<O.x+O.c*s+s){
+                        if (pl.x+pl.w*s/2<=O.x+O.c*s/2){
+                            O.s=1;
+                        } else O.s=2;
+                        if (pl.y+pl.h*s<=O.y) pl.vy=-s*2;}
+                } else {
+                    // Shell moving - stomp from above to stop it
+                    if (O.x<pl.x+pl.w*s&&O.x+O.c*s>pl.x&&pl.y+pl.h*s==O.y) {
+                        O.s=0;
+                        pl.vy=-s*2;
+                    }
+                    // Shell kills player on side collision
+                    if (O.x<pl.x+s*pl.w&&O.x+s*O.c>pl.x&&O.y<pl.y+pl.h*s&&O.y+s*O.c>pl.y) {
+                        if (pl.takeDamage()) {
+                            pl.respawnPlayer();
+                        }
+                    }
+                }
+            }
+            
             if (O.x<c.xMin-O.i*s||O.x>s*10*24+c.xMax||O.y>s*10*16+c.yMax||O.y<c.yMin-s*10*6.7){
                 objects=filter(objects,o=>o!=O);
                 objCuld=filter(objCuld,o=>o!=O);}
@@ -758,12 +779,19 @@ if (mode==1&&!won&&deathTimer==0) {
             others=filter(others,o=>o!=O);}}
     
     
+    // Player-to-player collisions (only if not deeply overlapping)
     // Player-to-player collisions
     for(let i=0;i<players.length;i++) {
         for(let j=i+1;j<players.length;j++) {
             let p1 = players[i];
             let p2 = players[j];
             
+            // Calculate overlap amounts
+            let overlapX = Math.min(p1.x + p1.w * s, p2.x + p2.w * s) - Math.max(p1.x, p2.x);
+            let overlapY = Math.min(p1.y + p1.h * s, p2.y + p2.h * s) - Math.max(p1.y, p2.y);
+            
+            // Only collide if players overlap AND overlap is small (not deeply inside)
+            if (overlapX > 0 && overlapY > 0 && overlapX < p1.w * s * 0.8 && overlapY < p1.h * s * 0.8) {
             // Check if players overlap
             if (p1.x < p2.x + p2.w * s && p1.x + p1.w * s > p2.x &&
                 p1.y < p2.y + p2.h * s && p1.y + p1.h * s > p2.y) {
@@ -936,6 +964,16 @@ if (mode==1&&!won&&deathTimer==0) {
             player.invincibleTimer = 300; // 5 seconds of invincibility
         }
         
+        // Second life powerup (mushroom - id 14) - grows player
+        if(some(objCuld,o=>o.id==14&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y)) {
+            objects=filter(objects,o=>!(o.id==14&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y));
+            if (!player.powered) {
+                // Grow player height and move up to prevent clipping into ground
+                let oldHeight = player.h;
+                player.h = 10; // Grow from 8 to 10
+                player.y -= (player.h - oldHeight) * s; // Move up by the growth amount
+                player.powered = true;
+            }
         // Second life powerup (mushroom - id 14)
         if(some(objCuld,o=>o.id==14&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y)) {
             objects=filter(objects,o=>!(o.id==14&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y));
