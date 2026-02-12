@@ -755,7 +755,7 @@ if (mode==1&&!won&&deathTimer==0) {
         others.push({x:O.x+O.i/8*3*s,y:O.y+O.i/8*s,id:69.2,vx:0,vy:-s*1.5,i:O.i});
     }}
     let lasers=filter(others,o=>o.id-o.id%1==69);
-        for(let i=0;i<lasers.length;i++) {
+    for(let i=0;i<lasers.length;i++) {
         let O=lasers[i];
         O.x+=O.vx;O.y+=O.vy;
         // Check collision with blocks
@@ -793,38 +793,39 @@ if (mode==1&&!won&&deathTimer==0) {
             // Only collide if players overlap AND overlap is small (not deeply inside)
             if (overlapX > 0 && overlapY > 0 && overlapX < p1.w * s * 0.8 && overlapY < p1.h * s * 0.8) {
             // Check if players overlap
-            if (p1.x < p2.x + p2.w * s && p1.x + p1.w * s > p2.x &&
-                p1.y < p2.y + p2.h * s && p1.y + p1.h * s > p2.y) {
-                
-                // Horizontal collision
-                if (Math.abs((p1.x + p1.w * s / 2) - (p2.x + p2.w * s / 2)) > Math.abs((p1.y + p1.h * s / 2) - (p2.y + p2.h * s / 2))) {
-                    if (p1.x < p2.x) {
-                        let overlap = p1.x + p1.w * s - p2.x;
-                        p1.x -= overlap / 2;
-                        p2.x += overlap / 2;
+                if (p1.x < p2.x + p2.w * s && p1.x + p1.w * s > p2.x &&
+                    p1.y < p2.y + p2.h * s && p1.y + p1.h * s > p2.y) {
+                    
+                    // Horizontal collision
+                    if (Math.abs((p1.x + p1.w * s / 2) - (p2.x + p2.w * s / 2)) > Math.abs((p1.y + p1.h * s / 2) - (p2.y + p2.h * s / 2))) {
+                        if (p1.x < p2.x) {
+                            let overlap = p1.x + p1.w * s - p2.x;
+                            p1.x -= overlap / 2;
+                            p2.x += overlap / 2;
+                        } else {
+                            let overlap = p2.x + p2.w * s - p1.x;
+                            p1.x += overlap / 2;
+                            p2.x -= overlap / 2;
+                        }
+                        p1.vx = 0;
+                        p2.vx = 0;
                     } else {
-                        let overlap = p2.x + p2.w * s - p1.x;
-                        p1.x += overlap / 2;
-                        p2.x -= overlap / 2;
-                    }
-                    p1.vx = 0;
-                    p2.vx = 0;
-                } else {
-                    // Vertical collision
-                    if (p1.y < p2.y) {
-                        let overlap = p1.y + p1.h * s - p2.y;
-                        p1.y -= overlap / 2;
-                        p2.y += overlap / 2;
-                        p1.vy = Math.min(p1.vy, 0);
-                        p2.vy = Math.max(p2.vy, 0);
-                        p2.jump = true;
-                    } else {
-                        let overlap = p2.y + p2.h * s - p1.y;
-                        p1.y += overlap / 2;
-                        p2.y -= overlap / 2;
-                        p1.vy = Math.max(p1.vy, 0);
-                        p2.vy = Math.min(p2.vy, 0);
-                        p1.jump = true;
+                        // Vertical collision
+                        if (p1.y < p2.y) {
+                            let overlap = p1.y + p1.h * s - p2.y;
+                            p1.y -= overlap / 2;
+                            p2.y += overlap / 2;
+                            p1.vy = Math.min(p1.vy, 0);
+                            p2.vy = Math.max(p2.vy, 0);
+                            p2.jump = true;
+                        } else {
+                            let overlap = p2.y + p2.h * s - p1.y;
+                            p1.y += overlap / 2;
+                            p2.y -= overlap / 2;
+                            p1.vy = Math.max(p1.vy, 0);
+                            p2.vy = Math.min(p2.vy, 0);
+                            p1.jump = true;
+                        }
                     }
                 }
             }
@@ -889,28 +890,28 @@ if (mode==1&&!won&&deathTimer==0) {
 
     //Breakable Blocks and Powerup Spawning
     let breakableObjs=filter(objCuld,o=>o.d[0]==1)
-        for(let i=0;i<breakableObjs.length;i++) {
-            let O=breakableObjs[i];
-            let playerBreak = some(players,pl=>O.x<pl.x+s*pl.w&&O.x+s*O.c>pl.x&&pl.y==O.y+O.c*s);
-            if (playerBreak||some(objCuld,o=>o.id==1200&&O.y+s<o.y+o.c*s&&O.y+O.c*s>o.y&&(o.x==O.x+O.c*s+s&&o.s==1||o.x+o.c*s==O.x-s&&o.s==2))) {
-                // Spawn powerup if d[2]==1
-                if (O.d[2]==1) {
-                    let powerupId = Math.random() < 0.5 ? 13 : 14; // Random star or mushroom
-                    objects.push({
-                        x: O.x,
-                        y: O.y - O.i * s,
-                        id: powerupId,
-                        c: 0,
-                        s: Math.random() < 0.5 ? 0 : 2, // Random direction (0=left, 2=right)
-                        i: O.i,
-                        l: O.l,
-                        d: [0,0,0,0],
-                        vx: 0,
-                        vy: 0
-                    });
-                }
-                objects=filter(objects,o=>o!=O);
-                objCuld=filter(objCuld,o=>o!=O);}}
+    for(let i=0;i<breakableObjs.length;i++) {
+        let O=breakableObjs[i];
+        let playerBreak = some(players,pl=>O.x<pl.x+s*pl.w&&O.x+s*O.c>pl.x&&pl.y==O.y+O.c*s);
+        if (playerBreak||some(objCuld,o=>o.id==1200&&O.y+s<o.y+o.c*s&&O.y+O.c*s>o.y&&(o.x==O.x+O.c*s+s&&o.s==1||o.x+o.c*s==O.x-s&&o.s==2))) {
+            // Spawn powerup if d[2]==1
+            if (O.d[2]==1) {
+                let powerupId = Math.random() < 0.5 ? 13 : 14; // Random star or mushroom
+                objects.push({
+                    x: O.x,
+                    y: O.y - O.i * s,
+                    id: powerupId,
+                    c: 0,
+                    s: Math.random() < 0.5 ? 0 : 2, // Random direction (0=left, 2=right)
+                    i: O.i,
+                    l: O.l,
+                    d: [0,0,0,0],
+                    vx: 0,
+                    vy: 0
+                });
+            }
+            objects=filter(objects,o=>o!=O);
+            objCuld=filter(objCuld,o=>o!=O);}}
     
     //update switches
     let switches=filter(objCuld,o=>o.id==66);
@@ -921,7 +922,6 @@ if (mode==1&&!won&&deathTimer==0) {
         if (playerOn||canBe) {
             O.s=O.s-O.s%2+1;
         } else {O.s=O.s-O.s%2;}}
-    
     
     //channels
     for (let j=0;j<channels.length;j++) {
@@ -973,7 +973,7 @@ if (mode==1&&!won&&deathTimer==0) {
                 player.h = 10; // Grow from 8 to 10
                 player.y -= (player.h - oldHeight) * s; // Move up by the growth amount
                 player.powered = true;
-            }
+            }}
         // Second life powerup (mushroom - id 14)
         if(some(objCuld,o=>o.id==14&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y)) {
             objects=filter(objects,o=>!(o.id==14&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y));
