@@ -846,10 +846,23 @@ if (mode==1&&!won&&deathTimer==0) {
         
         //player collisions. collidable=if within player velocities and if not overlapping with player
         let collidable=filter(objCuld,o=>{
-            if (o.id === 9999) return false; // Skip hitboxes
+            // Skip this player's own hitbox AND other player hitboxes for now (handled separately below)
+            if (o.id === 9999) return false;
             let objHeight = (o.h !== undefined) ? o.h * s : o.c * s;
             return o.c!=0&&o.x<player.x+s*player.w+Math.max(player.vx,0)&&o.x+o.c*s>player.x+Math.min(player.vx,0)&&o.y<player.y+s*player.h+Math.max(player.vy,0)&&o.y+objHeight>player.y+Math.min(player.vy,0)&&!(o.x+o.c*s>player.x&&o.x<player.x+player.w*s&&o.y+objHeight>player.y&&o.y<player.y+player.h*s);
         });
+        
+        // Add other players' hitboxes for player-to-player collision
+        let otherPlayerHitboxes = filter(objCuld, o => {
+            if (o.id !== 9999 || !o.player || o.player === player) return false;
+            let objHeight = (o.h !== undefined) ? o.h * s : o.c * s;
+            // Check if hitbox is within collision range and not deeply overlapping (80% threshold)
+            let overlapX = Math.min(player.x + player.w * s, o.x + o.c * s) - Math.max(player.x, o.x);
+            let overlapY = Math.min(player.y + player.h * s, o.y + objHeight) - Math.max(player.y, o.y);
+            if (overlapX > player.w * s * 0.8 || overlapY > player.h * s * 0.8) return false; // Skip if deeply overlapping
+            return o.x<player.x+s*player.w+Math.max(player.vx,0)&&o.x+o.c*s>player.x+Math.min(player.vx,0)&&o.y<player.y+s*player.h+Math.max(player.vy,0)&&o.y+objHeight>player.y+Math.min(player.vy,0)&&!(o.x+o.c*s>player.x&&o.x<player.x+player.w*s&&o.y+objHeight>player.y&&o.y<player.y+player.h*s);
+        });
+        collidable = collidable.concat(otherPlayerHitboxes);
         let yC=filter(collidable,o=>o.x+o.c*s>player.x&&o.x<player.x+player.w*s).sort((a,b)=>-(b.y-a.y))[0];
         let xC=filter(collidable,o=>o.y+o.c*s>player.y&&o.y<player.y+player.h*s).sort((a,b)=>-(b.x-a.x))[0];
         if (collidable.length>0&&!xC&&!yC) {
