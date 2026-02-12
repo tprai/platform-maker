@@ -44,7 +44,7 @@ function button(e) {
         e2=(editLayer<=9)?"&emsp;"+editLayer:"&ensp;"+editLayer;
         document.getElementById("Layer").innerHTML="Layer:&emsp;"+e2+"&emsp;";}
     if (e=='cPlus') {
-        editChannel=Math.min(99,(keyShiftPressed)?editChannel+10:editChannel+1);
+        editChannel=Math.min((keyShiftPressed&&keyFPressed&&editChannel==21)?31:29,(keyShiftPressed)?editChannel+10:editChannel+1);
         e2=(editChannel<=9)?"&emsp;"+editChannel:"&ensp;"+editChannel;
         document.getElementById("Channel").innerHTML="Channel:&emsp;"+e2+"&emsp;";}
     if (e=='cMinus') {
@@ -65,7 +65,18 @@ function button(e) {
         if (txt.innerHTML=="Sure?") {txt.innerHTML="Clear";objects=[];if (toSave(objects)!=previousObjects[0]){previousObjects.unshift(toSave(objects));}
         } else if (txt.innerHTML=="Clear") txt.innerHTML="Sure?";}
     if (e=='Save') {
-        let a = prompt("Save Level Data", saveSettings()+toSave(unSizedLevel()));}
+        try{let save=saveSettings()+toSave(unSizedLevel());
+        const tempTextArea = document.createElement("textarea");
+        tempTextArea.value = save;
+        document.body.appendChild(tempTextArea);
+        tempTextArea.select();
+        try {
+          document.execCommand("copy");
+          alert('Save Copied Automatically!');
+        } catch (err) {
+          alert('Save Copying Error. Must manually copy.');
+          alert(save);}
+        document.body.removeChild(tempTextArea);}catch(e){alert("Inform Jamie of Error: "+e);}}
     if (e=='Load') {
         let p=prompt("Load Level Data", "").trim();
         if (p.trim()!=''){try{loadSettings(p);objects=toObjects(p.substring(p.indexOf("–")+1));objects=sizedLevel();if (toSave(objects)!=previousObjects[0]){previousObjects.unshift(toSave(objects));toPlayMode();}}catch(e){alert("Error Loading Level Data");}}}
@@ -102,7 +113,7 @@ function button(e) {
         } else if (backgroundColor=="rgb(115,170,255)") {backgroundColor="rgb(255,255,255)";
         } else if (backgroundColor=="rgb(255,255,255)") {backgroundColor="rgb(141,255,163)";}}
     }
-let keyWPressed,keyAPressed,keySPressed,keyDPressed,keyRightPressed,keyLeftPressed,keyUpPressed,keyDownPressed,keySpacePressed,keyFPressed,keyRPressed,keyShiftPressed;
+let keyWPressed,keyAPressed,keySPressed,keyDPressed,keyRightPressed,keyPPressed,keyLeftPressed,keyUpPressed,keyDownPressed,keySpacePressed,keyFPressed,keyRPressed,keyShiftPressed;
 window.addEventListener("keydown", (event) => {
   switch(event.key.toLowerCase()) {
     case "arrowright":keyRightPressed=true;break;
@@ -118,6 +129,7 @@ window.addEventListener("keydown", (event) => {
     case "e":if (mode==0){toPlayMode();}else{toEditMode();}break;
     case "f":keyFPressed=true;break;
     case "r":keyRPressed=true;break;
+    case "p":keyPPressed=true;break;
     //case "g":keyGPressed=true;break;
     case "shift":keyShiftPressed=true;break;
     //default:console.log(event.key.toLowerCase());
@@ -179,11 +191,13 @@ function drawObj(o,transform=0) {
     if (o.id>=63&&o.id<=65) {ctx.drawImage(jerry,Math.floor(fCT%32/8)*16,(o.id-59)*16,16,16,o.x+c.x-transform*s,o.y+c.y-transform*s,s*o.i,s*o.i);return;}
     if (o.id==66||o.id==67) {ctx.drawImage(jerry,(2*o.id%3+(o.s||0)%2)*16,7*16,16,16,o.x+c.x,o.y+c.y,s*o.i,s*o.i);return;}
     if (o.id==68) {ctx.drawImage(jerry,((o.s||0)%2)*16,8*16,16,16,o.x+c.x,o.y+c.y,s*o.i,s*o.i);return;}//-(mode*(o.s%2-.5)*(fCT%3)*s||0)smooth movement
+    if (o.id==69) {ctx.drawImage(jerryLaser,o.x+c.x,o.y+c.y,s*o.i,s*o.i);return;}
     
     if (o.id==1100) {ctx.drawImage(marioEnemies,Math.floor(fCT%20/10)*16,0*16,16,16,o.x+c.x-transform*s,o.y+c.y-transform*s*2+o.i*s*0.4,o.i*s,o.i*s*0.6);return;}
     if (o.id==1200) {ctx.drawImage(marioShell,0,0,16,13,o.x+c.x-transform*s*3,o.y+c.y-transform*s*6+o.i*s*0.2,o.i*s,o.i*s*0.8);return;}
     return;}
 function respawn() {
+    unWin();
     mode=1;
     deathTimer=0;
     setStartPos();
@@ -248,6 +262,8 @@ function drawAutoTile(me,tileset,tileSize=16) {
     let place=getFromTileset(me);
     ctx.drawImage(tileset,place[0]*tileSize,place[1]*tileSize,tileSize,tileSize,me.x+c.x,me.y+c.y,me.i*s,me.i*s);}
 function toEditMode() {
+    if (!noEditLevel){
+    unWin();
     mode=0;
     deathTimer=0;
     won=false;
@@ -255,9 +271,10 @@ function toEditMode() {
     objects=toObjects(previousObjects[0]); 
     document.getElementById("Mode").innerHTML="Play";
     document.querySelectorAll('.edit').forEach(e=>e.hidden=false);
-    
+    others.length=0;
     let activatedCheckpointIndex=objects.findIndex(o=>o.id==51&&o.s==1);
-    if (activatedCheckpointIndex>=0) objects[activatedCheckpointIndex].s=0;}
+    if (activatedCheckpointIndex>=0) objects[activatedCheckpointIndex].s=0;
+    }}
 function toPlayMode() {
     mode=1;
     respawn();
@@ -304,10 +321,13 @@ function loadSettings(S) {
     backgroundColor="rgb("+lS.substring(0,lS.indexOf("-"))+")";
     lS=lS.substring(lS.indexOf("-")+1);
     p.vMax=Number(lS.substring(0,lS.indexOf(",")));lS=lS.substring(lS.indexOf(",")+1);
-    p.jumpPower=Number(lS.substring(0,lS.indexOf(",")));lS=lS.substring(lS.indexOf(",")+1);
+    p.jumpPower=Number(lS.substring(0,lS.indexOf(",")));lS=lS.substring(lS.indexOf(",")+1);if (S.substring(1,2)=="I") {noEditLevel=true;toPlayMode();}
     p.w=Number(lS.substring(0,lS.indexOf(",")));lS=lS.substring(lS.indexOf(",")+1);
     p.h=Number(lS);
     }
+function unWin() {
+    document.getElementById("win").hidden=true;
+    won=false;}
 function updateBD(){
     if (editBlockData[editBDId]==1) {
         document.getElementById('bDToggle').innerHTML='Yes';
@@ -323,13 +343,18 @@ function sizedLevel(){
     return objects.map(function(o){return {x:o.x*s,y:o.y*s,id:o.id,c:o.c,s:o.s,i:o.i,l:o.l,d:o.d};});
 }           
 function setStartPos() {
-    let sPI = objects.findIndex(o=>o.id==25);
-    if (sPI!=-1) {
-        p.startX=objects[sPI].x+objects[sPI].i/2*s-s*p.w/2;
-        p.startY=objects[sPI].y+objects[sPI].i/2*s-s*p.h/2;
-    }
+    cI=objects.findIndex(o=>o.id==51&&o.s%2==1);
+    if(cI!=-1) {
+        p.startX=objects[cI].x+objects[cI].i*s/2-p.w*s/2;
+        p.startY=objects[cI].y+objects[cI].i*s/2-p.h*s/2;
+    } else {
+        let sPI = objects.findIndex(o=>o.id==25);
+        if (sPI!=-1) {
+           p.startX=objects[sPI].x+objects[sPI].i/2*s-s*p.w/2;
+        p.startY=objects[sPI].y+objects[sPI].i/2*s-s*p.h/2;} else {p.startX=0;p.startY=0;}}
 }    
 let won=false;
+let noEditLevel=false;
 let mode=1;
 let screenHeightBlocks=16;//blocks (10px) that fit height of canvas
 let s=canvas.height/screenHeightBlocks/10;//size of one pixel
@@ -339,7 +364,7 @@ let deathTimer=0;
 let portalCooldown=0;
 let jump=false;//if can jump
 let timer=0;
-let channels=[0,0,0,0,0];
+let channels=[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
 let editObjId=0;//for level editor
 let editCollision=2;//0: forced no, 1: forced yes, 2: auto (getCollision(id))
 let editSize=10;
@@ -350,8 +375,8 @@ let editChannel=0;
 let editBlockData=[0,0,0,0];
 let editBDId=0;//break,move,powerup
 let backgroundColor="rgb(141,255,163)";
-let others=[];
 let objects=[];
+let others=[];
 if (true) {
     objects=[//xpos (pixels), ypos (pixels), image id, collision size, state, image size, layer, data
     {x: 0, y: 150, id: 54, c:10, i:10, l:1, s:0, d:[0,0,0,0]},
@@ -404,6 +429,9 @@ if (true) {
     {x: 230, y: 0, id: 54, c:10, i:10, l:1, s:0, d:[0,0,0,0]}];}//if (true) so array is collabsible
 objects=sizedLevel();
 let previousObjects=[toSave(objects)];
+let layers = Array.from({ length: 100 }, () => []);
+
+
 /*let url = new URL(window.location.toLocaleString()).searchParams;let urlObjs=url.get('s');
 if (urlObjs) {try{loadSettings(urlObjs);objects=toObjects(urlObjs.substring(urlObjs.indexOf("–")+1));objects=sizedLevel();if (toSave(objects)!=previousObjects[0]){previousObjects.unshift(toSave(objects));toPlayMode();}}catch(e){alert("Error Loading Level Data");}
 } else window.location.replace('https://platform-maker-17774376.codehs.me/index.html?s=platformMaker-141,255,163-1.5,4,6,8%E2%80%93H9Y11q54C1s4I1L0d0-H8Y11q54C1s4I1L0d1000-H7Y11q54C1s4I1L0d0-H6Y11q54C1s4I1L0d0-H5Y11q54C1s4I1L0d0-H4Y11q54C1s4I1L0d0-H3Y11q54C1s4I1L0d0-H2Y11q54C1s4I1L0d0-H1Y11q54C1s4I1L0d0-X0Y11q54C1s4I1L0d0-X1Y11q54C1s4I1L0d0-X2Y11q54C1s4I1L0d0-X3Y11q54C1s4I1L0d0-X4Y11q54C1s4I1L0d0-X6Y11q54C1s4I1L0d0-X7Y11q54C1s4I1L0d0-X8Y11q54C1s4I1L0d0-X9Y11q54C1s4I1L0d0-X10Y11q54C1s4I1L0d0-X11Y11q54C1s4I1L0d0-X12Y11q54C1s4I1L0d0-X13Y11q54C1s4I1L0d0-X14Y11q54C1s4I1L0d0-X15Y11q54C1s4I1L0d0-X16Y11q54C1s4I1L0d0-X17Y11q54C1s4I1L0d0-H9Y10q54C1s4I1L0d0-H9Y9q54C1s4I1L0d0-H9Y8q54C1s4I1L0d0-H9Y7q54C1s4I1L0d0-H9Y6q54C1s4I1L0d0-H9Y5q54C1s4I1L0d0-H9Y4q54C1s4I1L0d0-H9Y3q54C1s4I1L0d0-H9Y2q54C1s4I1L0d0-H9Y1q54C1s4I1L0d0-H9Y0q54C1s4I1L0d0-H9K1q54C1s4I1L0d0-H9K2q54C1s4I1L0d0-H9K3q54C1s4I1L0d0-H9K4q54C1s4I1L0d0-H9K5q54C1s4I1L0d0-H9K6q54C1s4I1L0d0-H9K7q54C1s4I1L0d0-H9K8q54C1s4I1L0d0-H9K9q54C1s8I1L0d0-X17Y10q54C1s4I1L0d0-X17Y9q54C1s4I1L0d0-X17Y8q54C1s4I1L0d0-X17Y7q54C1s4I1L0d0-X17Y6q54C1s4I1L0d0-X...7q54C1s4I1L0d0-X2Y6q54C1s4I1L0d0-X2Y5q54C1s4I1L0d0-X3Y10q53C0s4I1L0d0-H6Y7q25C0s8I1L0d0-H9K10q54C1s8I1L0d0-H9K11q54C1s8I1L0d0-H9K12q54C1s8I1L0d0-H9K13q54C1s8I1L0d0-H9K14q54C1s8I1L0d0-H9K15q54C1s8I1L0d0-H9K16q54C1s8I1L0d0-H9K17q54C1s8I1L0d0-H9K18q54C1s8I1L0d0-H9K19q54C1s8I1L0d0-H9K20q54C1s8I1L0d0-H8K20q54C1s8I1L0d0-H7K20q54C1s8I1L0d0-H6K20q54C1s8I1L0d0-H5K20q54C1s8I1L0d0-H4K20q54C1s8I1L0d0-H3K20q54C1s8I1L0d0-H2K20q54C1s8I1L0d0-H1K20q54C1s8I1L0d0-X0K20q54C1s8I1L0d0-X1K20q54C1s8I1L0d0-X2K20q54C1s8I1L0d0-X3K20q54C1s8I1L0d0-X4K20q54C1s8I1L0d0-X5K20q54C1s8I1L0d0-X6K20q54C1s8I1L0d0-X7K20q54C1s8I1L0d0-X8K20q54C1s8I1L0d0-X9K20q54C1s8I1L0d0-X10K20q54C1s8I1L0d0-X11K20q54C1s8I1L0d0-X12K20q54C1s8I1L0d0-X13K20q54C1s8I1L0d0-X14K20q54C1s8I1L0d0-X15K20q54C1s8I1L0d0-X17K12q54C1s8I1L0d0-X17K13q54C1s8I1L0d0-X17K14q54C1s8I1L0d0-X17K15q54C1s8I1L0d0-X17K16q54C1s8I1L0d0-X17K17q54C1s8I1L0d0-X17K18q54C1s8I1L0d0-X17K19q54C1s8I1L0d0-X17K20q54C1s8I1L0d0-X16K20q54C1s8I1L0d0-X17K10q54C1s8I1L0d0-X17K11q54C1s8I1L0d0');
@@ -412,6 +440,9 @@ if (urlObjs) {try{loadSettings(urlObjs);objects=toObjects(urlObjs.substring(urlO
 
 //main loop
 function t() {
+if (keyFPressed){document.getElementById("debug").innerHTML='FPS: '+fps;}else{document.getElementById("debug").innerHTML='';}
+if (won) {document.getElementById("win").hidden=false;noEditLevel=false;}
+
 //zoom
 canvas.height=canvasHeight*c.z;
 canvas.width=canvas.height*1.5;
@@ -420,6 +451,9 @@ ctx.imageSmoothingEnabled=false;
 ctx.fillStyle=backgroundColor;
 ctx.fillRect(0,0,canvas.width,canvas.height);
 
+//culling
+var objCuld=filter(objects,o=>o.d[3]==1||o.x>=-c.x-s*20&&o.x<=-c.x+canvas.width+s*10&&o.y>=-c.y-s*20&&o.y<=-c.y+canvas.height+s*30);
+    
 if (mode==1&&!won&&deathTimer==0) {
     if (keyRPressed) respawn();
 
@@ -428,9 +462,6 @@ if (mode==1&&!won&&deathTimer==0) {
     c.vy=-Math.max(-s*20,Math.min(s*20,Math.floor((-(p.y+Math.max(p.vy*2,0)-(-c.y+s*10*10))/s/10)**3)/4*s));
     c.x=-Math.max(c.xMin,Math.min(c.xMax,-c.x+c.vx));
     c.y=-Math.max(c.yMin+Math.min(0,(p.y-c.yMax-s*20)/1.5),Math.min(c.yMax,-c.y+c.vy));
-    
-    //culling
-    var objCuld=filter(objects,o=>o.d[3]==1||o.x>=-c.x-s*20&&o.x<=-c.x+canvas.width+s*10&&o.y>=-c.y-s*20&&o.y<=-c.y+canvas.height+s*40);
     
     
     //Lock Detection (occurs before colision)
@@ -491,8 +522,8 @@ if (mode==1&&!won&&deathTimer==0) {
     let deadGoombas=filter(objCuld,o=>o.id==1100);
     for(let i=0;i<deadGoombas.length;i++) {
         let O=deadGoombas[i];
-        O.s+=1;
-        if (O.s>28) objects=filter(objects,o=>o!=O);}
+        O.s+=.1;
+        if (O.s>2.8) objects=filter(objects,o=>o!=O);}
     
     //mario shells
     let deadKTs=filter(objCuld,o=>o.id==1200);
@@ -505,7 +536,7 @@ if (mode==1&&!won&&deathTimer==0) {
             } else O.y+=O.vy;
             O.vy+=s/4;
             if (O.s==1) {if (!some(objCuld,o=>o.c!=0&&o.y<O.y+s*O.c&&o.y+s*o.c>O.y&&o.x==O.x+O.c*s)) {O.x=O.x+s-O.x%s} else {O.s=2;}
-            } else if (O.s==2) {if (!some(objCuld,o=>o.c!=0&&o.y<O.y+s*O.c&&o.y+s*o.c>O.y&&O.x==o.x+o.c*s)) {O.x-=s} else {O.s=1;}
+            } else if (O.s==2) {if (!some(objCuld,o=>o.c!=0&&o.y<O.y+s*O.c&&o.y+s*o.c>O.y&&O.x==o.x+o.c*s)) {O.x=O.x-s-O.x%s} else {O.s=1;}
             }
             if (O.s==0){
                 if (p.y+p.h*s>=O.y&&p.y<O.y+O.c*s&&p.x+p.w*s>O.x-s&&p.x<O.x+O.c*s+s){
@@ -519,6 +550,26 @@ if (mode==1&&!won&&deathTimer==0) {
                 objects=filter(objects,o=>o!=O);
                 objCuld=filter(objCuld,o=>o!=O);}
             }
+    
+    //lasers
+    
+    let laserSummoners=filter(objCuld,o=>o.id==69);//nice
+    for(let i=0;i<laserSummoners.length;i++) {
+        let O=laserSummoners[i];
+        if (fCT%150==0||O.s%2==1){
+        O.s=(O.s%4>=2)?O.s-O.s%4:O.s-O.s%4+2;
+        others.push({x:O.x+O.i/8*s,y:O.y+O.i/8*3*s,id:69.1,vx:s*1.5,vy:0,i:O.i});
+        others.push({x:O.x+O.i/8*s,y:O.y+O.i/8*3*s,id:69.1,vx:-s*1.5,vy:0,i:O.i});
+        others.push({x:O.x+O.i/8*3*s,y:O.y+O.i/8*s,id:69.2,vx:0,vy:s*1.5,i:O.i});
+        others.push({x:O.x+O.i/8*3*s,y:O.y+O.i/8*s,id:69.2,vx:0,vy:-s*1.5,i:O.i});
+    }}
+    let lasers=filter(others,o=>o.id-o.id%1==69);
+        for(let i=0;i<lasers.length;i++) {
+        let O=lasers[i];
+        O.x+=O.vx;O.y+=O.vy;
+        if (O.x<c.xMin-O.i*s||O.x>s*10*24+c.xMax||O.y>s*10*16+c.yMax||O.y<c.yMin-s*10*6.7){
+            others=filter(others,o=>o!=O);}}
+    
     
     //movement input
     if (keyAPressed||keyLeftPressed){
@@ -537,19 +588,19 @@ if (mode==1&&!won&&deathTimer==0) {
     
     //player collisions. collidable=if within player velocities and if not overlapping with player
     let collidable=filter(objCuld,o=>o.c!=0&&o.x<p.x+s*p.w+Math.max(p.vx,0)&&o.x+o.c*s>p.x+Math.min(p.vx,0)&&o.y<p.y+s*p.h+Math.max(p.vy,0)&&o.y+o.c*s>p.y+Math.min(p.vy,0)&&!(o.x+o.c*s>p.x&&o.x<p.x+p.w*s&&o.y+o.c*s>p.y&&o.y<p.y+p.h*s));
-    let yC=filter(collidable,o=>o.x+o.c*s>p.x&&o.x<p.x+p.w*s).sort((a,b)=>Math.sign(p.y-a.y)*(b.y-a.y))[0];
-    let xC=filter(collidable,o=>o.y+o.c*s>p.y&&o.y<p.y+p.h*s).sort((a,b)=>Math.sign(p.x-a.x)*(b.x-a.x))[0];
+    let yC=filter(collidable,o=>o.x+o.c*s>p.x&&o.x<p.x+p.w*s).sort((a,b)=>-(b.y-a.y))[0];
+    let xC=filter(collidable,o=>o.y+o.c*s>p.y&&o.y<p.y+p.h*s).sort((a,b)=>-(b.x-a.x))[0];
     if (collidable.length>0&&!xC&&!yC) {
         p.x+=p.vx;
-        yC=filter(collidable,o=>o.x+o.c*s>p.x&&o.x<p.x+p.w*s).sort((a,b)=>Math.sign(p.y-a.y)*(b.y-a.y))[0];
+        yC=filter(collidable,o=>o.x+o.c*s>p.x&&o.x<p.x+p.w*s).sort((a,b)=>-(b.y-a.y))[0];
         collideY(yC);
     } else if (yC) {
         collideY(yC);
-        xCe=filter(collidable,o=>o.y+o.c*s>p.y&&o.y<p.y+p.h*s).sort((a,b)=>Math.sign(p.x-a.x)*(b.x-a.x))[0];
+        xC=filter(collidable,o=>o.y+o.c*s>p.y&&o.y<p.y+p.h*s).sort((a,b)=>-(b.x-a.x))[0];
         collideX(xC);
     } else if (xC) {
         collideX(xC);
-        yC=filter(collidable,o=>o.x+o.c*s>p.x&&o.x<p.x+p.w*s).sort((a,b)=>Math.sign(p.y-a.y)*(b.y-a.y))[0];
+        yC=filter(collidable,o=>o.x+o.c*s>p.x&&o.x<p.x+p.w*s).sort((a,b)=>-(b.y-a.y))[0];
         collideY(yC);
     } else {
         p.x+=p.vx;
@@ -557,7 +608,7 @@ if (mode==1&&!won&&deathTimer==0) {
     p.vy=Math.min(p.vy+s/4,s*10);//gravity
 
     //stomp on enemies
-    let stompedEnemies=filter(objCuld,o=>(o.id==11||o.id==12||o.id==63||o.id==64||o.id==65)&&o.x<p.x+p.w*s&&o.x+o.c*s>p.x&&p.y+p.h*s>=o.y-s&&p.y+p.h*s<=o.y);
+    let stompedEnemies=filter(objCuld,o=>(o.id==11||o.id==12||o.id==63||o.id==64||o.id==65)&&o.x<p.x+p.w*s+s&&o.x+o.c*s-s>p.x&&p.y+p.h*s>=o.y-s&&p.y+p.h*s<=o.y);
     for(let i=0;i<stompedEnemies.length;i++) {
         let O=stompedEnemies[i];
         if (O.id==11||O.id==12){
@@ -574,7 +625,7 @@ if (mode==1&&!won&&deathTimer==0) {
     let breakableObjs=filter(objCuld,o=>o.d[0]==1)
         for(let i=0;i<breakableObjs.length;i++) {
             let O=breakableObjs[i];
-            if (O.x<p.x+s*p.w&&O.x+s*O.c>p.x&&p.y==O.y+O.c*s||some(objCuld,o=>o.id==1200&&O.y<o.y+o.c*s&&O.y+O.c*s>o.y&&(o.x==O.x+O.c*s+s&&o.s==1||o.x+o.c*s==O.x-s&&o.s==2))) {
+            if (O.x<p.x+s*p.w&&O.x+s*O.c>p.x&&p.y==O.y+O.c*s||some(objCuld,o=>o.id==1200&&O.y+s<o.y+o.c*s&&O.y+O.c*s>o.y&&(o.x==O.x+O.c*s+s&&o.s==1||o.x+o.c*s==O.x-s&&o.s==2))) {
                 objects=filter(objects,o=>o!=O);
                 objCuld=filter(objCuld,o=>o!=O);}}
     
@@ -582,14 +633,17 @@ if (mode==1&&!won&&deathTimer==0) {
     let switches=filter(objCuld,o=>o.id==66);
     for(let i=0;i<switches.length;i++) {
         let O=switches[i];
-        if ((O.x<p.x+s*p.w&&O.x+s*O.i>p.x&&O.y<p.y+p.h*s&&O.y+s*O.i>p.y)||some(objects,o=>(o.id==68||o.id==56)&&o.c!=0&&O.x<o.x+s*o.c&&O.x+s*O.i>o.x&&O.y<o.y+o.c*s&&O.y+s*O.i>o.y)) {
+        let canBe=objCuld.some(o=>(o.id==68||o.id==56||o.id<=12&&o.id>=11||o.id>=1000||o.id>=63&&o.id<=64)&&o.c!=0&&O.x<o.x+s*o.c&&O.x+s*O.i>o.x&&O.y<o.y+o.c*s&&O.y+s*O.i>o.y);
+        if ((O.x<p.x+s*p.w&&O.x+s*O.i>p.x&&O.y<p.y+p.h*s&&O.y+s*O.i>p.y)||canBe) {
             O.s=O.s-O.s%2+1;
         } else {O.s=O.s-O.s%2;}}
     
-    //update channels
+    
+    //channels
     for (let j=0;j<channels.length;j++) {
         if (some(switches,o=>o.s%2==1&&(o.s-o.s%4)/4==j+1)) {
             channels[j]=1;
+            if (j==30){objects=filter(objects,o=>!(o.id==11||o.id==12||o.id==63||o.id==64||o.id==65)).concat(filter(toObjects(previousObjects[0]),o=>o.id==11||o.id==12||o.id==63||o.id==64||o.id==65));objects=objects.map(function(o){return {x:(o.id>=11&&o.id<=12||o.id>=63&&o.id<=65)?o.x+s:o.x,y:(o.id>=11&&o.id<=12||o.id>=63&&o.id<=65)?o.y+s:o.y,id:o.id,c:o.c,s:o.s,i:o.i,l:o.l,d:o.d};});} 
         } else channels[j]=0;}
     
     //update toggleable blocks
@@ -629,10 +683,8 @@ if (mode==1&&!won&&deathTimer==0) {
     //checkpoint
     cI=objCuld.findIndex(o=>o.id==51&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&o.y<p.y+p.h*s&&o.y+s*o.i>p.y&&o.s%2==0);
     if(cI>-1) {
-        p.startX=objCuld[cI].x+objCuld[cI].i*s/2-p.w*s/2;
-        p.startY=objCuld[cI].y+objCuld[cI].i*s/2-p.h*s/2;
         objects.forEach(o=>{if (o.id==51&&o.s%2==1)o.s-=1;});
-        objects[cI].s+=1;}
+        objCuld[cI].s+=1;}
         //Fix to implement culling
 
     //win
@@ -652,7 +704,7 @@ if (mode==1&&!won&&deathTimer==0) {
         if (mouseY<=canvas.height/screenHeightBlocks*(screenHeightBlocks-4)) {
             let X=Math.floor((mouseX-c.x)/(s*editGridSize));
             let Y=Math.floor((mouseY-c.y)/(s*editGridSize));
-            if (editObjId>68||(editObjId>12&&editObjId<50)&&editObjId!=25&&editObjId!=26) {
+            if (editObjId>69||(editObjId>12&&editObjId<50)&&editObjId!=25&&editObjId!=26) {
                 objects=filter(objects,o=>!(o.x==X*s*editGridSize&&o.y==Y*s*editGridSize&&o.l==editLayer));
             } else {
             let oI=objects.findIndex(o=>o.x==X*s*editGridSize&&o.y==Y*s*editGridSize&&o.l==editLayer);
@@ -686,12 +738,24 @@ if (mode==1&&!won&&deathTimer==0) {
 }
 
 //Draw objects on screen
-for (let i=0;i<filter(objects,o=>o.x>=-c.x-20*s&&o.x<=-c.x+canvas.width*c.z*2&&o.y>=-c.y-20*s&&o.y<=-c.y+canvas.height*c.z*2).length;i++){drawObj(filter(objects,o=>o.x>=-c.x-20*s&&o.x<=-c.x+canvas.width*c.z*2&&o.y>=-c.y-20*s&&o.y<=-c.y+canvas.height*c.z*2).sort((a,b)=>a.l-b.l)[i],mode);}
+for (let l = 0; l < 100; l++) layers[l].length = 0;//empty layers
+for (let i = 0, len = objCuld.length; i < len; i++) layers[objCuld[i].l].push(objCuld[i]);//update layers
+for (let l = 0; l < 100; l++) {
+    const bucket = layers[l];
+    for (let j = 0, blen = bucket.length; j < blen; j++) {
+        drawObj(bucket[j],mode);
+    }}
 
-//draw player
+
+//draw player and others
 if (mode==1) { 
     ctx.fillStyle="rgb(255,0,0)";
     ctx.fillRect(p.x+c.x,p.y+c.y,s*p.w,s*p.h);
+    for (let i=0;i<others.length;i++){
+        let O=others[i];
+        if (O.id==69.1) {drawRect(O.x,O.y,O.i/8*6*s,O.i/8*2*s,"255,41,74");continue;}
+        if (O.id==69.2) {drawRect(O.x,O.y,O.i/8*2*s,O.i/8*6*s,"255,41,74");continue;}
+    }
     }
 
 //edit mode overlays
@@ -729,9 +793,11 @@ let fC=0;
 let fps=0;
 let fCT=0;//total frames
 let last=performance.now();
+let pause=false;
 function f() {
     const n = performance.now();
-    t();
+    if (keyPPressed){keyPPressed=false;pause=!pause;}
+    if (!pause) t();
     fC++;fCT++;
     if (n-last>=1000) {fps=fC;fC=0;last=n;}
 requestAnimationFrame(f);
@@ -741,7 +807,8 @@ requestAnimationFrame(f);
 /* TO DO
   - turn player into object
   - add levels menu
-  - powerups
+  - powerups (including gun)
+  - better enemies (with guns?)
   - moving blocks left/right
   - 
  */
