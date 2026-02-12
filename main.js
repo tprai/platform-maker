@@ -178,9 +178,7 @@ function drawObj(o,transform=0) {
         drawRect(o.x+s,o.y+s,s*8*o.i/10,s*8*o.i/10,"150,150,150");return;}
     if (o.id==2)  {drawAutoTile(o,orangeBricks);return;}
     if (o.id==2.5)  {ctx.drawImage(orangeBricks,0*16,3*16,16,16,o.x+c.x,o.y+c.y,o.i*s,o.i*s);return;}
-    if (o.id==3) {ctx.drawImage(mario,3*16,0*16,16,16,o.x+c.x,o.y+c.y,o.i*s,o.i*s);return;} // Invincibility powerup (star)
-    if (o.id==4) {ctx.drawImage(mario,0*16,0*16,16,16,o.x+c.x,o.y+c.y,o.i*s,o.i*s);return;} // Second life powerup (mushroom)
-    if (o.id>=5&&o.id<=9) {ctx.drawImage(mario,(o.id-3)*16,0,16,16,o.x+c.x,o.y+c.y,o.i*s,o.i*s);return;}
+    if (o.id>=3&&o.id<=9) {ctx.drawImage(mario,(o.id-3)*16,0,16,16,o.x+c.x,o.y+c.y,o.i*s,o.i*s);return;}
     if (o.id==10) {ctx.drawImage(marioCoin,Math.max(0,Math.floor(-1.5*Math.cos(Math.PI*fCT/22)+0.9))*16,0*16,16,16,o.x+c.x,o.y+c.y,o.i*s,o.i*s);return;}
     if (o.id==11) {ctx.drawImage(marioEnemies,Math.floor(fCT%20/10)*16,0*16,16,16,o.x+c.x-transform*s,o.y+c.y-transform*s*2+o.i*s*0.15,o.i*s,o.i*s*0.85);return;}
     if (o.id==12) {ctx.drawImage(marioEnemies,Math.floor(fCT%20/10)*16,1*16+Math.floor(o.s%4/2)*24,16,24,o.x+c.x-transform*s,o.y+c.y-transform*s*2-o.i*s*0.2,o.i*s,o.i*s*1.2);return;}
@@ -202,71 +200,40 @@ function respawn() {
     unWin();
     mode=1;
     deathTimer=0;
-    
-    // Find all spawn blocks
-    let spawnBlocks = objects.filter(o => o.id == 25);
-    
-    // Clear existing players
-    players = [];
-    
-    if (spawnBlocks.length > 0) {
-        // Create a player for each spawn block
-        spawnBlocks.forEach(spawn => {
-            let player = new Player(
-                spawn.x + spawn.i * s / 2 - 3 * s,
-                spawn.y + spawn.i * s / 2 - 4 * s
-            );
-            players.push(player);
-        });
-    } else {
-        // If no spawn blocks, check for checkpoint
-        let checkpointIndex = objects.findIndex(o => o.id == 51 && o.s == 1);
-        if (checkpointIndex >= 0) {
-            let checkpoint = objects[checkpointIndex];
-            players.push(new Player(
-                checkpoint.x + checkpoint.i * s / 2 - 3 * s,
-                checkpoint.y + checkpoint.i * s / 2 - 4 * s
-            ));
-        } else {
-            // Default spawn
-            players.push(new Player(0, 0));
-        }
-    }
-    
-    // Set camera to first player
-    if (players.length > 0) {
-        p = players[0]; // Keep p reference for backward compatibility
-        jump = false;
-        c.x = -Math.max(c.xMin, Math.min(c.xMax, players[0].x - s * 10 * 12));
-        c.y = -Math.max(c.yMin, Math.min(c.yMax, players[0].y - s * 10 * 8));
-    }
-    
+    setStartPos();
+    p.x=p.startX;
+    p.y=p.startY;
+    p.vx=0;
+    p.vy=0;
+    jump=false;
+    c.x=-Math.max(c.xMin,Math.min(c.xMax,p.x-s*10*12));
+    c.y=-Math.max(c.yMin,Math.min(c.yMax,p.y-s*10*8));
     return 1;}
-function collideX(player, o=6.7) {
+function collideX(o=6.7) {
     if (o==6.7) {
-        player.x+=player.vx;
+        p.x+=p.vx;
     } else {
-    if (player.vx>0) {
-        if (player.x+player.w*s+player.vx>o.x) {
-            player.x=o.x-player.w*s;player.vx=0;
-        } else player.x+=player.vx;
+    if (p.vx>0) {
+        if (p.x+p.w*s+p.vx>o.x) {
+            p.x=o.x-p.w*s;p.vx=0;
+        } else p.x+=p.vx;
     } else {
-        if (player.x+player.vx<o.x+o.c*s) {
-            player.x=o.x+o.c*s;player.vx=0;
-        } else player.x+=player.vx;
+        if (p.x+p.vx<o.x+o.c*s) {
+            p.x=o.x+o.c*s;p.vx=0;
+        } else p.x+=p.vx;
     }}}
-function collideY(player, o=6.7) {
+function collideY(o=6.7) {
     if (o==6.7) {
-        player.y+=player.vy;
+        p.y+=p.vy;
     } else {
-    if (player.vy>0) {
-        if (player.y+player.h*s+player.vy>o.y) {
-            player.y=o.y-player.h*s;player.vy=0;player.jump=true;
-        } else {player.y+=player.vy;}
+    if (p.vy>0) {
+        if (p.y+p.h*s+p.vy>o.y) {
+            p.y=o.y-p.h*s;p.vy=0;jump=true;
+        } else {p.y+=p.vy;}
     } else {
-        if (player.y+player.vy<o.y+o.c*s) {
-            player.y=o.y+o.c*s;player.vy=0;
-        } else {player.y+=player.vy;}
+        if (p.y+p.vy<o.y+o.c*s) {
+            p.y=o.y+o.c*s;p.vy=0;
+        } else {p.y+=p.vy;}
     }}}
 function getCollision(id) {//when placing in  editore
     if (editCollision==0) return 0;
@@ -386,66 +353,12 @@ function setStartPos() {
            p.startX=objects[sPI].x+objects[sPI].i/2*s-s*p.w/2;
         p.startY=objects[sPI].y+objects[sPI].i/2*s-s*p.h/2;} else {p.startX=0;p.startY=0;}}
 }    
-// Player Class
-class Player {
-    constructor(x=0, y=0) {
-        this.x = x;
-        this.y = y;
-        this.vx = 2;
-        this.vy = 0;
-        this.vMax = 1.5;
-        this.jumpPower = 4;
-        this.w = 6;
-        this.h = 8;
-        this.coins = 0;
-        this.startX = x;
-        this.startY = y;
-        this.keys = 0;
-        this.jump = false;
-        this.deathTimer = 0;
-        this.portalCooldown = 0;
-        this.invincible = false;
-        this.invincibleTimer = 0;
-        this.powered = false; // second life powerup (like Super Mario)
-    }
-    
-    takeDamage() {
-        if (this.invincible) return false;
-        if (this.powered) {
-            this.powered = false;
-            this.invincible = true;
-            this.invincibleTimer = 120; // 2 seconds of invincibility
-            return false;
-        }
-        return true; // player dies
-    }
-    
-    update() {
-        if (this.invincibleTimer > 0) {
-            this.invincibleTimer--;
-            if (this.invincibleTimer <= 0) {
-                this.invincible = false;
-            }
-        }
-    }
-    
-    draw(ctx, c, s) {
-        if (this.invincible && Math.floor(fCT / 4) % 2 === 0) {
-            ctx.fillStyle = "rgba(255,0,0,0.5)";
-        } else {
-            ctx.fillStyle = this.powered ? "rgb(255,100,0)" : "rgb(255,0,0)";
-        }
-        ctx.fillRect(this.x + c.x, this.y + c.y, s * this.w, s * (this.powered ? this.h * 1.2 : this.h));
-    }
-}
-
 let won=false;
 let noEditLevel=false;
 let mode=1;
 let screenHeightBlocks=16;//blocks (10px) that fit height of canvas
 let s=canvas.height/screenHeightBlocks/10;//size of one pixel
-let p={x:0,y:0,vx:2,vy:0,vMax:1.5,jumpPower:4,w:6,h:8,coins:0,startX:0,startY:0,keys:0}; // Keep for backward compatibility
-let players = []; // Array to hold all player instances
+let p={x:0,y:0,vx:2,vy:0,vMax:1.5,jumpPower:4,w:6,h:8,coins:0,startX:0,startY:0,keys:0};
 let c={x:0,y:0,xMin:0,xMax:0,yMin:0,yMax:0,vx:0,vy:0,z:1};//camera pos
 let deathTimer=0;
 let portalCooldown=0;
@@ -747,35 +660,11 @@ if (mode==1&&!won&&deathTimer==0) {
         objects=filter(objects,o=>!((o.id==60)&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&o.y<p.y+p.h*s&&o.y+s*o.i>p.y));
         p.keys+=(collected0-objects.length);}
     
-    //coins and powerups for all players
-    players.forEach(player => {
-        // Update player power up timers
-        player.update();
-        
-        // Coins
-        if(some(objCuld,o=>(o.id==10||o.id==57)&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y)) {
-            let collected0=objects.length;
-            objects=filter(objects,o=>!((o.id==10||o.id==57)&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y));
-            player.coins+=(collected0-objects.length);}
-        
-        // Invincibility powerup (star - id 3)
-        if(some(objCuld,o=>o.id==3&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y)) {
-            objects=filter(objects,o=>!(o.id==3&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y));
-            player.invincible = true;
-            player.invincibleTimer = 300; // 5 seconds of invincibility
-        }
-        
-        // Second life powerup (mushroom - id 4)
-        if(some(objCuld,o=>o.id==4&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y)) {
-            objects=filter(objects,o=>!(o.id==4&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y));
-            player.powered = true;
-        }
-    });
-    // Update legacy p reference
-    if (players.length > 0) {
-        p.coins = players[0].coins;
-        p.keys = players[0].keys;
-    }
+    //coins
+    if(some(objCuld,o=>(o.id==10||o.id==57)&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&o.y<p.y+p.h*s&&o.y+s*o.i>p.y)) {
+        let collected0=objects.length;
+        objects=filter(objects,o=>!((o.id==10||o.id==57)&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&o.y<p.y+p.h*s&&o.y+s*o.i>p.y));
+        p.coins+=(collected0-objects.length);}
     
     //portals
     cI=objCuld.findIndex(o=>o.id==59&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&o.y<p.y+p.h*s&&o.y+s*o.i>p.y);
@@ -802,19 +691,9 @@ if (mode==1&&!won&&deathTimer==0) {
     if(some(objCuld,o=>o.id==53&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&o.y<p.y+p.h*s&&o.y+s*o.i>p.y)) {
         won=true;
     
-    //death - check all players
-    } else {
-        for(let i=0;i<players.length;i++) {
-            let player = players[i];
-            if (player.x<c.xMin-player.w*s||player.x>s*10*24+c.xMax||player.y>s*10*16+c.yMax
-                ||some(objCuld,o=>(o.id==11||o.id==12||o.id==26||o.id==62||o.id==63||o.id==64||o.id==65)&&o.x-s<player.x+s*player.w&&o.x-s+s*o.i>player.x&&o.y-s<player.y+player.h*s&&o.y-s+s*o.i>player.y)) {
-                if (player.takeDamage()) {
-                    deathTimer=1;
-                    break;
-                }
-            }
-        }
-    }
+    //death
+    } else if (p.x<c.xMin-p.w*s||p.x>s*10*24+c.xMax||p.y>s*10*16+c.yMax
+        ||some(objCuld,o=>(o.id==11||o.id==12||o.id==26||o.id==62||o.id==63||o.id==64||o.id==65)&&o.x-s<p.x+s*p.w&&o.x-s+s*o.i>p.x&&o.y-s<p.y+p.h*s&&o.y-s+s*o.i>p.y)) {deathTimer=1;}
 
 } else if (mode==0) {
     if (keyWPressed||keyUpPressed) c.y+=3*s*c.z;
@@ -870,11 +749,8 @@ for (let l = 0; l < 100; l++) {
 
 //draw player and others
 if (mode==1) { 
-    // Draw all players
-    players.forEach(player => {
-        player.draw(ctx, c, s);
-    });
-    
+    ctx.fillStyle="rgb(255,0,0)";
+    ctx.fillRect(p.x+c.x,p.y+c.y,s*p.w,s*p.h);
     for (let i=0;i<others.length;i++){
         let O=others[i];
         if (O.id==69.1) {drawRect(O.x,O.y,O.i/8*6*s,O.i/8*2*s,"255,41,74");continue;}
