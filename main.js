@@ -171,6 +171,7 @@ function drawRect(x,y,w,h,C){
     ctx.fillStyle="rgb("+C+")";
     ctx.fillRect(x+c.x,y+c.y,w,h);}
 function drawObj(o,transform=0) {
+    if (o.id==9999) return; // Don't draw player hitboxes
     if (o.id==0) {
         drawRect(o.x,o.y,s*o.i,s*o.i,"0,0,0");return;}
     if (o.id==1) {
@@ -203,6 +204,9 @@ function respawn() {
     mode=1;
     deathTimer=0;
     
+    // Remove all player hitboxes
+    objects = filter(objects, o => o.id != 9999);
+    
     // Find all spawn blocks
     let spawnBlocks = objects.filter(o => o.id == 25);
     
@@ -210,19 +214,46 @@ function respawn() {
     players = [];
     
     if (spawnBlocks.length > 0) {
-        // Create a player for each spawn block
+        // Create a player for each spawn block using setStartPos logic
         spawnBlocks.forEach(spawn => {
-            let player = new Player(
-                spawn.x + spawn.i * s / 2 - 3 * s,
-                spawn.y + spawn.i * s / 2 - 4 * s
-            );
-            // Each player remembers their own spawn block
+            // Use setStartPos-style positioning
+            p.startX = spawn.x + spawn.i / 2 * s - s * p.w / 2;
+            p.startY = spawn.y + spawn.i / 2 * s - s * p.h / 2;
+            
+            let player = new Player(p.startX, p.startY);
             player.spawnBlock = spawn;
             players.push(player);
+            
+            // Create hitbox object for this player
+            let hitbox = {
+                x: player.x,
+                y: player.y,
+                id: 9999,
+                c: player.w,
+                h: player.h, // height in blocks
+                i: player.w,
+                l: 1,
+                s: 0,
+                d: [0,0,0,0],
+                player: player // Reference back to player
+            };
+            objects.push(hitbox);
+            player.hitbox = hitbox;
         });
     } else {
         // Default spawn if no spawn blocks
-        players.push(new Player(0, 0));
+        p.startX = 0;
+        p.startY = 0;
+        let player = new Player(0, 0);
+        players.push(player);
+        
+        // Create hitbox
+        let hitbox = {
+            x: 0, y: 0, id: 9999, c: player.w, h: player.h,
+            i: player.w, l: 1, s: 0, d: [0,0,0,0], player: player
+        };
+        objects.push(hitbox);
+        player.hitbox = hitbox;
     }
     
     // Set camera to first player
@@ -250,13 +281,15 @@ function collideY(player, o=6.7) {
     if (o==6.7) {
         player.y+=player.vy;
     } else {
+    // Use o.h if it exists (rectangular hitbox), otherwise use o.c
+    let objHeight = (o.h !== undefined) ? o.h * s : o.c * s;
     if (player.vy>0) {
         if (player.y+player.h*s+player.vy>o.y) {
             player.y=o.y-player.h*s;player.vy=0;player.jump=true;
         } else {player.y+=player.vy;}
     } else {
-        if (player.y+player.vy<o.y+o.c*s) {
-            player.y=o.y+o.c*s;player.vy=0;
+        if (player.y+player.vy<o.y+objHeight) {
+            player.y=o.y+objHeight;player.vy=0;
         } else {player.y+=player.vy;}
     }}}
 function getCollision(id) {//when placing in  editore
@@ -384,10 +417,10 @@ class Player {
         this.y = y;
         this.vx = 0;
         this.vy = 0;
-        this.vMax = 1.5;
-        this.jumpPower = 4;
-        this.w = 6;
-        this.h = 8;
+        this.vMax = p.vMax; // Use base values from loadSettings
+        this.jumpPower = p.jumpPower;
+        this.w = p.w;
+        this.h = p.h;
         this.startX = x;
         this.startY = y;
         this.jump = false;
@@ -398,34 +431,39 @@ class Player {
         this.powered = false; // second life powerup (like Super Mario)
         this.checkpoint = null; // Individual checkpoint
         this.spawnBlock = null; // Remember spawn block
+        this.hitbox = null; // Reference to hitbox object (id 9999)
     }
     
     respawnPlayer() {
-        // Respawn this player at their checkpoint or spawn point
-        if (this.checkpoint) {
-            this.x = this.checkpoint.x + this.checkpoint.i * s / 2 - this.w * s / 2;
-            this.y = this.checkpoint.y + this.checkpoint.i * s / 2 - this.h * s / 2;
+        // Use setStartPos logic for this player
+        let cI = objects.findIndex(o=>o.id==51&&o.s%2==1);
+        if(cI!=-1 && this.checkpoint) {
+            this.startX = this.checkpoint.x + this.checkpoint.i * s / 2 - this.w * s / 2;
+            this.startY = this.checkpoint.y + this.checkpoint.i * s / 2 - this.h * s / 2;
         } else if (this.spawnBlock) {
-            this.x = this.spawnBlock.x + this.spawnBlock.i * s / 2 - this.w * s / 2;
-            this.y = this.spawnBlock.y + this.spawnBlock.i * s / 2 - this.h * s / 2;
+            this.startX = this.spawnBlock.x + this.spawnBlock.i * s / 2 - this.w * s / 2;
+            this.startY = this.spawnBlock.y + this.spawnBlock.i * s / 2 - this.h * s / 2;
         } else {
-            this.x = this.startX;
-            this.y = this.startY;
+            this.startX = 0;
+            this.startY = 0;
         }
+        
+        this.x = this.startX;
+        this.y = this.startY;
         this.vx = 0;
         this.vy = 0;
         this.deathTimer = 0;
         this.invincible = false;
         this.invincibleTimer = 0;
         this.powered = false;
-        this.h = 8; // Reset to normal height
+        this.h = p.h; // Reset to base height from p
     }
     
     takeDamage() {
         if (this.invincible) return false;
         if (this.powered) {
             this.powered = false;
-            this.h = 8; // Shrink back to normal size
+            this.h = p.h; // Shrink back to base size
             this.invincible = true;
             this.invincibleTimer = 120; // 2 seconds of invincibility
             return false;
@@ -538,15 +576,33 @@ if (mode == 1 && players.length == 0) {
     let spawnBlocks = objects.filter(o => o.id == 25);
     if (spawnBlocks.length > 0) {
         spawnBlocks.forEach(spawn => {
-            let player = new Player(
-                spawn.x + spawn.i * s / 2 - 3 * s,
-                spawn.y + spawn.i * s / 2 - 4 * s
-            );
+            // Use setStartPos-style positioning
+            p.startX = spawn.x + spawn.i / 2 * s - s * p.w / 2;
+            p.startY = spawn.y + spawn.i / 2 * s - s * p.h / 2;
+            
+            let player = new Player(p.startX, p.startY);
             player.spawnBlock = spawn;
             players.push(player);
+            
+            // Create hitbox
+            let hitbox = {
+                x: player.x, y: player.y, id: 9999, c: player.w, h: player.h,
+                i: player.w, l: 1, s: 0, d: [0,0,0,0], player: player
+            };
+            objects.push(hitbox);
+            player.hitbox = hitbox;
         });
     } else {
-        players.push(new Player(0, 0));
+        let player = new Player(0, 0);
+        players.push(player);
+        
+        // Create hitbox
+        let hitbox = {
+            x: 0, y: 0, id: 9999, c: player.w, h: player.h,
+            i: player.w, l: 1, s: 0, d: [0,0,0,0], player: player
+        };
+        objects.push(hitbox);
+        player.hitbox = hitbox;
     }
     if (players.length > 0) p = players[0];
 }
@@ -778,53 +834,15 @@ if (mode==1&&!won&&deathTimer==0) {
             others=filter(others,o=>o!=O);}}
     
     
-    // Player-to-player collisions (only if not deeply overlapping)
-    for(let i=0;i<players.length;i++) {
-        for(let j=i+1;j<players.length;j++) {
-            let p1 = players[i];
-            let p2 = players[j];
-            
-            // Calculate overlap amounts
-            let overlapX = Math.min(p1.x + p1.w * s, p2.x + p2.w * s) - Math.max(p1.x, p2.x);
-            let overlapY = Math.min(p1.y + p1.h * s, p2.y + p2.h * s) - Math.max(p1.y, p2.y);
-            
-            // Only collide if players overlap AND overlap is small (not deeply inside)
-            if (overlapX > 0 && overlapY > 0 && overlapX < p1.w * s * 0.8 && overlapY < p1.h * s * 0.8) {
-                
-                // Horizontal collision
-                if (Math.abs((p1.x + p1.w * s / 2) - (p2.x + p2.w * s / 2)) > Math.abs((p1.y + p1.h * s / 2) - (p2.y + p2.h * s / 2))) {
-                    if (p1.x < p2.x) {
-                        let overlap = p1.x + p1.w * s - p2.x;
-                        p1.x -= overlap / 2;
-                        p2.x += overlap / 2;
-                    } else {
-                        let overlap = p2.x + p2.w * s - p1.x;
-                        p1.x += overlap / 2;
-                        p2.x -= overlap / 2;
-                    }
-                    p1.vx = 0;
-                    p2.vx = 0;
-                } else {
-                    // Vertical collision
-                    if (p1.y < p2.y) {
-                        let overlap = p1.y + p1.h * s - p2.y;
-                        p1.y -= overlap / 2;
-                        p2.y += overlap / 2;
-                        p1.vy = Math.min(p1.vy, 0);
-                        p2.vy = Math.max(p2.vy, 0);
-                        p2.jump = true;
-                    } else {
-                        let overlap = p2.y + p2.h * s - p1.y;
-                        p1.y += overlap / 2;
-                        p2.y -= overlap / 2;
-                        p1.vy = Math.max(p1.vy, 0);
-                        p2.vy = Math.min(p2.vy, 0);
-                        p1.jump = true;
-                    }
-                }
-            }
+    // Update player hitboxes to follow players
+    players.forEach(player => {
+        if (player.hitbox) {
+            player.hitbox.x = player.x;
+            player.hitbox.y = player.y;
+            player.hitbox.c = player.w;
+            player.hitbox.h = player.h;
         }
-    }
+    });
     
     // Process each player independently
     players.forEach(player => {
@@ -836,15 +854,24 @@ if (mode==1&&!won&&deathTimer==0) {
         } else player.vx=0;
         if (player.jump&&(keyWPressed||keyUpPressed||keySpacePressed)) {
             player.vy=-s*player.jumpPower;
+            player.jump=false; // Consume jump immediately to prevent flying
         }
-        player.jump=false;
         
         //spring
         if (some(objCuld,o=>o.id==58&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&player.y+player.h*s==o.y)) player.vy=-s*6;
         if (some(objCuld,o=>o.id==58&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&player.y==o.y+o.i*s)) player.vy=s*2;
         
         //player collisions. collidable=if within player velocities and if not overlapping with player
-        let collidable=filter(objCuld,o=>o.c!=0&&o.x<player.x+s*player.w+Math.max(player.vx,0)&&o.x+o.c*s>player.x+Math.min(player.vx,0)&&o.y<player.y+s*player.h+Math.max(player.vy,0)&&o.y+o.c*s>player.y+Math.min(player.vy,0)&&!(o.x+o.c*s>player.x&&o.x<player.x+player.w*s&&o.y+o.c*s>player.y&&o.y<player.y+player.h*s));
+        // Include objects with .h for rectangular hitboxes
+        let collidable=filter(objCuld,o=>{
+            if(o.c==0) return false;
+            let objHeight = (o.h !== undefined) ? o.h * s : o.c * s;
+            return o.x<player.x+s*player.w+Math.max(player.vx,0)&&
+                   o.x+o.c*s>player.x+Math.min(player.vx,0)&&
+                   o.y<player.y+s*player.h+Math.max(player.vy,0)&&
+                   o.y+objHeight>player.y+Math.min(player.vy,0)&&
+                   !(o.x+o.c*s>player.x&&o.x<player.x+player.w*s&&o.y+objHeight>player.y&&o.y<player.y+player.h*s);
+        });
         let yC=filter(collidable,o=>o.x+o.c*s>player.x&&o.x<player.x+player.w*s).sort((a,b)=>-(b.y-a.y))[0];
         let xC=filter(collidable,o=>o.y+o.c*s>player.y&&o.y<player.y+player.h*s).sort((a,b)=>-(b.x-a.x))[0];
         if (collidable.length>0&&!xC&&!yC) {
@@ -965,7 +992,7 @@ if (mode==1&&!won&&deathTimer==0) {
             if (!player.powered) {
                 // Grow player height and move up to prevent clipping into ground
                 let oldHeight = player.h;
-                player.h = 10; // Grow from 8 to 10
+                player.h = p.h + 2; // Grow by 2 blocks
                 player.y -= (player.h - oldHeight) * s; // Move up by the growth amount
                 player.powered = true;
             }
