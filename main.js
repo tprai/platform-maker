@@ -698,6 +698,7 @@ if (mode==1&&!won&&deathTimer==0) {
     }
     
     //mario shells - check all players
+    //mario shells
     let deadKTs=filter(objCuld,o=>o.id==1200);
     for(let i=0;i<deadKTs.length;i++) {
         let O=deadKTs[i];
@@ -779,6 +780,7 @@ if (mode==1&&!won&&deathTimer==0) {
     
     
     // Player-to-player collisions (only if not deeply overlapping)
+    // Player-to-player collisions
     for(let i=0;i<players.length;i++) {
         for(let j=i+1;j<players.length;j++) {
             let p1 = players[i];
@@ -790,6 +792,9 @@ if (mode==1&&!won&&deathTimer==0) {
             
             // Only collide if players overlap AND overlap is small (not deeply inside)
             if (overlapX > 0 && overlapY > 0 && overlapX < p1.w * s * 0.8 && overlapY < p1.h * s * 0.8) {
+            // Check if players overlap
+            if (p1.x < p2.x + p2.w * s && p1.x + p1.w * s > p2.x &&
+                p1.y < p2.y + p2.h * s && p1.y + p1.h * s > p2.y) {
                 
                 // Horizontal collision
                 if (Math.abs((p1.x + p1.w * s / 2) - (p2.x + p2.w * s / 2)) > Math.abs((p1.y + p1.h * s / 2) - (p2.y + p2.h * s / 2))) {
@@ -969,6 +974,10 @@ if (mode==1&&!won&&deathTimer==0) {
                 player.y -= (player.h - oldHeight) * s; // Move up by the growth amount
                 player.powered = true;
             }
+        // Second life powerup (mushroom - id 14)
+        if(some(objCuld,o=>o.id==14&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y)) {
+            objects=filter(objects,o=>!(o.id==14&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y));
+            player.powered = true;
         }
     });
     
