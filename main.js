@@ -179,9 +179,9 @@ function drawObj(o,transform=0) {
         drawRect(o.x+s,o.y+s,s*8*o.i/10,s*8*o.i/10,"150,150,150");return;}
     if (o.id==2)  {drawAutoTile(o,orangeBricks);return;}
     if (o.id==2.5)  {ctx.drawImage(orangeBricks,0*16,3*16,16,16,o.x+c.x,o.y+c.y,o.i*s,o.i*s);return;}
-    if (o.id>=3&&o.id<=9) {ctx.drawImage(mario,(o.id-3)*16,0,16,16,o.x+c.x,o.y+c.y,o.i*s,o.i*s);return;}
-    if (o.id==13) {drawRect(o.x,o.y,o.i*s,o.i*s,"255,255,100");return;} // Star powerup placeholder
-    if (o.id==14) {drawRect(o.x,o.y,o.i*s,o.i*s,"255,150,150");return;} // Mushroom powerup placeholder
+    if (o.id==3) {ctx.drawImage(mario,3*16,0*16,16,16,o.x+c.x,o.y+c.y,o.i*s,o.i*s);return;} // Invincibility powerup (star)
+    if (o.id==4) {ctx.drawImage(mario,0*16,0*16,16,16,o.x+c.x,o.y+c.y,o.i*s,o.i*s);return;} // Second life powerup (mushroom)
+    if (o.id>=5&&o.id<=9) {ctx.drawImage(mario,(o.id-3)*16,0,16,16,o.x+c.x,o.y+c.y,o.i*s,o.i*s);return;}
     if (o.id==10) {ctx.drawImage(marioCoin,Math.max(0,Math.floor(-1.5*Math.cos(Math.PI*fCT/22)+0.9))*16,0*16,16,16,o.x+c.x,o.y+c.y,o.i*s,o.i*s);return;}
     if (o.id==11) {ctx.drawImage(marioEnemies,Math.floor(fCT%20/10)*16,0*16,16,16,o.x+c.x-transform*s,o.y+c.y-transform*s*2+o.i*s*0.15,o.i*s,o.i*s*0.85);return;}
     if (o.id==12) {ctx.drawImage(marioEnemies,Math.floor(fCT%20/10)*16,1*16+Math.floor(o.s%4/2)*24,16,24,o.x+c.x-transform*s,o.y+c.y-transform*s*2-o.i*s*0.2,o.i*s,o.i*s*1.2);return;}
@@ -259,11 +259,27 @@ function respawn() {
         player.hitbox = hitbox;
         objects.push(hitbox);
         players.push(player);
+            players.push(player);
+        });
+    } else {
+        // If no spawn blocks, check for checkpoint
+        let checkpointIndex = objects.findIndex(o => o.id == 51 && o.s == 1);
+        if (checkpointIndex >= 0) {
+            let checkpoint = objects[checkpointIndex];
+            players.push(new Player(
+                checkpoint.x + checkpoint.i * s / 2 - 3 * s,
+                checkpoint.y + checkpoint.i * s / 2 - 4 * s
+            ));
+        } else {
+            // Default spawn
+            players.push(new Player(0, 0));
+        }
     }
     
     // Set camera to first player
     if (players.length > 0) {
         p = players[0]; // Keep p reference for backward compatibility
+        jump = false;
         c.x = -Math.max(c.xMin, Math.min(c.xMax, players[0].x - s * 10 * 12));
         c.y = -Math.max(c.yMin, Math.min(c.yMax, players[0].y - s * 10 * 8));
     }
@@ -300,7 +316,7 @@ function getCollision(id) {//when placing in  editore
     if (editCollision==0) return 0;
     if (editCollision==1) return editSize;
     if (id==11||id==12||id==62||id==63||id==64||id==65) return editSize-2;
-    if (id==10||id==13||id==14||id==25||id==26||id==51||id==52||id==53||id==57||id==59||id==60||id==66) return 0;
+    if (id==10||id==25||id==26||id==51||id==52||id==53||id==57||id==59||id==60||id==66) return 0;
     return editSize;}
 function getFromTileset(me) {//b= auto-tile id
     let Q,W,E,A,D,Z,X,C;
@@ -419,14 +435,20 @@ class Player {
     constructor(x=0, y=0) {
         this.x = x;
         this.y = y;
-        this.vx = 0;
+        this.vx = 2;
         this.vy = 0;
         this.vMax = p.vMax;
         this.jumpPower = p.jumpPower;
         this.w = p.w;
         this.h = p.h;
+        this.vMax = 1.5;
+        this.jumpPower = 4;
+        this.w = 6;
+        this.h = 8;
+        this.coins = 0;
         this.startX = x;
         this.startY = y;
+        this.keys = 0;
         this.jump = false;
         this.deathTimer = 0;
         this.portalCooldown = 0;
@@ -495,10 +517,8 @@ let noEditLevel=false;
 let mode=1;
 let screenHeightBlocks=16;//blocks (10px) that fit height of canvas
 let s=canvas.height/screenHeightBlocks/10;//size of one pixel
-let p={x:0,y:0,vx:2,vy:0,vMax:1.5,jumpPower:4,w:6,h:8,startX:0,startY:0}; // Keep for backward compatibility
+let p={x:0,y:0,vx:2,vy:0,vMax:1.5,jumpPower:4,w:6,h:8,coins:0,startX:0,startY:0,keys:0}; // Keep for backward compatibility
 let players = []; // Array to hold all player instances
-let globalCoins = 0; // Shared across all players
-let globalKeys = 0; // Shared across all players
 let c={x:0,y:0,xMin:0,xMax:0,yMin:0,yMax:0,vx:0,vy:0,z:1};//camera pos
 let deathTimer=0;
 let portalCooldown=0;
@@ -571,24 +591,6 @@ objects=sizedLevel();
 let previousObjects=[toSave(objects)];
 let layers = Array.from({ length: 100 }, () => []);
 
-// Initialize players on first load if mode==1
-if (mode == 1 && players.length == 0) {
-    let spawnBlocks = objects.filter(o => o.id == 25);
-    if (spawnBlocks.length > 0) {
-        spawnBlocks.forEach(spawn => {
-            let player = new Player(
-                spawn.x + spawn.i * s / 2 - 3 * s,
-                spawn.y + spawn.i * s / 2 - 4 * s
-            );
-            player.spawnBlock = spawn;
-            players.push(player);
-        });
-    } else {
-        players.push(new Player(0, 0));
-    }
-    if (players.length > 0) p = players[0];
-}
-
 
 /*let url = new URL(window.location.toLocaleString()).searchParams;let urlObjs=url.get('s');
 if (urlObjs) {try{loadSettings(urlObjs);objects=toObjects(urlObjs.substring(urlObjs.indexOf("–")+1));objects=sizedLevel();if (toSave(objects)!=previousObjects[0]){previousObjects.unshift(toSave(objects));toPlayMode();}}catch(e){alert("Error Loading Level Data");}
@@ -622,43 +624,32 @@ if (mode==1&&!won&&deathTimer==0) {
     c.y=-Math.max(c.yMin+Math.min(0,(p.y-c.yMax-s*20)/1.5),Math.min(c.yMax,-c.y+c.vy));
     
     
-    //Lock Detection (occurs before colision) - check all players - USES GLOBAL KEYS
+    //Lock Detection (occurs before colision)
     let lockeds=filter(objCuld,o=>o.id==61);
     for(let i=0;i<lockeds.length;i++) {
         let O=lockeds[i];
-        for(let j=0;j<players.length;j++) {
-            let pl=players[j];
-            if (globalKeys>0&&(O.x==pl.x+pl.w*s&&O.y<pl.y+s*pl.h&&O.y+s*O.c>pl.y||O.x+O.c*s==pl.x&&O.y<pl.y+s*pl.h&&O.y+s*O.c>pl.y||O.y==pl.y+pl.h*s&&O.x<pl.x+s*pl.w&&O.x+s*O.c>pl.x||O.y+O.c*s==pl.y&&O.x<pl.x+s*pl.w&&O.x+s*O.c>pl.x)) {
-                objects=filter(objects,o=>o!=O);
-                objCuld=filter(objCuld,o=>o!=O);
-                globalKeys-=1;
-                break;
-            }
-        }
-    }
+        if (p.keys>0&&(O.x==p.x+p.w*s&&O.y<p.y+s*p.h&&O.y+s*O.c>p.y||O.x+O.c*s==p.x&&O.y<p.y+s*p.h&&O.y+s*O.c>p.y||O.y==p.y+p.h*s&&O.x<p.x+s*p.w&&O.x+s*O.c>p.x||O.y+O.c*s==p.y&&O.x<p.x+s*p.w&&O.x+s*O.c>p.x)) {
+            objects=filter(objects,o=>o!=O);
+            objCuld=filter(objCuld,o=>o!=O);
+            p.keys-=1;}}
     
-    //pushable blocks - check all players
+    //pushable blocks
     let pushableObjs=filter(objCuld,o=>o.d[1]==1);
     for(let i=0;i<pushableObjs.length;i++) {
         let O=pushableObjs[i];
         if (O.s==0) {
-            for(let j=0;j<players.length;j++) {
-                let pl=players[j];
-                if (O.x==pl.x+pl.w*s&&O.y<pl.y+s*pl.h&&O.y+s*O.c>pl.y&&!some(objCuld,o=>o.y<O.y+s*O.c&&o.y+s*o.c>O.y&&o.x==O.x+O.c*s)) {O.x+=s;O.s=3;break;}
-                if (O.x+O.c*s==pl.x&&O.y<pl.y+s*pl.h&&O.y+s*O.c>pl.y&&!some(objCuld,o=>o.y<O.y+s*O.c&&o.y+s*o.c>O.y&&O.x==o.x+o.c*s)) {O.x-=s;O.s=3;break;}
-                if (O.y==pl.y+pl.h*s&&O.x<pl.x+s*pl.w&&O.x+s*O.c>pl.x&&!some(objCuld,o=>o.x<O.x+s*O.c&&o.x+s*o.c>O.x&&o.y==O.y+O.c*s)) {O.y+=s;O.s=3;break;}
-                if (O.y+O.c*s==pl.y&&O.x<pl.x+s*pl.w&&O.x+s*O.c>pl.x&&!some(objCuld,o=>o.x<O.x+s*O.c&&o.x+s*o.c>O.x&&O.y==o.y+o.c*s)) {O.y-=s;O.s=3;break;}
-            }
+            if (O.x==p.x+p.w*s&&O.y<p.y+s*p.h&&O.y+s*O.c>p.y&&!some(objCuld,o=>o.y<O.y+s*O.c&&o.y+s*o.c>O.y&&o.x==O.x+O.c*s)) {O.x+=s;O.s=3;continue;}
+            if (O.x+O.c*s==p.x&&O.y<p.y+s*p.h&&O.y+s*O.c>p.y&&!some(objCuld,o=>o.y<O.y+s*O.c&&o.y+s*o.c>O.y&&O.x==o.x+o.c*s)) {O.x-=s;O.s=3;continue;}
+            if (O.y==p.y+p.h*s&&O.x<p.x+s*p.w&&O.x+s*O.c>p.x&&!some(objCuld,o=>o.x<O.x+s*O.c&&o.x+s*o.c>O.x&&o.y==O.y+O.c*s)) {O.y+=s;O.s=3;continue;}
+            if (O.y+O.c*s==p.y&&O.x<p.x+s*p.w&&O.x+s*O.c>p.x&&!some(objCuld,o=>o.x<O.x+s*O.c&&o.x+s*o.c>O.x&&O.y==o.y+o.c*s)) {O.y-=s;O.s=3;continue;}
         } else O.s=Math.max(0,O.s-1);}
 
-    //moving blocks - check all players
+    //moving blocks
     let movingBlocks=filter(objCuld,o=>o.id==68);
     for(let i=0;i<movingBlocks.length;i++) {
         let O=movingBlocks[i];
-            let playerBelow=some(players,pl=>O.y+O.c*s==pl.y&&O.x<pl.x+s*pl.w&&O.x+s*O.c>pl.x);
-            let playerAbove=some(players,pl=>O.y==pl.y+pl.h*s&&O.x<pl.x+s*pl.w&&O.x+s*O.c>pl.x);
-            if (O.s%2==0){if (!some(objCuld,o=>o.x<O.x+s*O.c&&o.x+s*o.c>O.x&&o.y==O.y+O.c*s)&&!playerBelow) {if(fCT%3==0)O.y+=s;} else {O.s+=0;}
-            } else       {if (!some(objCuld,o=>o.x<O.x+s*O.c&&o.x+s*o.c>O.x&&O.y==o.y+o.c*s)&&!playerAbove) {if(fCT%3==0)O.y-=s;} else {O.s-=1;}}}
+            if (O.s%2==0){if (!some(objCuld,o=>o.x<O.x+s*O.c&&o.x+s*o.c>O.x&&o.y==O.y+O.c*s)&&!(O.y+O.c*s==p.y&&O.x<p.x+s*p.w&&O.x+s*O.c>p.x)) {if(fCT%3==0)O.y+=s;} else {O.s+=0;}
+            } else       {if (!some(objCuld,o=>o.x<O.x+s*O.c&&o.x+s*o.c>O.x&&O.y==o.y+o.c*s)&&!(O.y==p.y+p.h*s&&O.x<p.x+s*p.w&&O.x+s*O.c>p.x)) {if(fCT%3==0)O.y-=s;} else {O.s-=1;}}}
 
     //enemy movement
     let movingEnemies=filter(objCuld,o=>o.id==11||o.id==12||o.id==63||o.id==64);
@@ -694,48 +685,6 @@ if (mode==1&&!won&&deathTimer==0) {
         O.s+=.1;
         if (O.s>2.8) objects=filter(objects,o=>o!=O);}
     
-    //moving powerups (id 13=star, id 14=mushroom)
-    let movingPowerups=filter(objCuld,o=>o.id==13||o.id==14);
-    for(let i=0;i<movingPowerups.length;i++) {
-        let O=movingPowerups[i];
-        // Initialize physics if not present
-        if (!O.vy) O.vy=0;
-        
-        // Gravity
-        let yC=filter(objCuld,o=>o.c>0&&o.x+o.c*s>O.x&&o.x<O.x+O.i*s&&o.y>=O.y+O.i*s&&o.y<=O.y+O.i*s+O.vy&&O!=o).sort((a,b)=>Math.sign(O.y-a.y)*(a.y-b.y))[0];
-        if (yC) {
-            O.y=yC.y-O.i*s;
-            O.vy=0;
-        } else {
-            O.y+=O.vy;
-        }
-        O.vy+=s/4;
-        
-        // Horizontal movement
-        if (O.s%4==2) {
-            // Moving right
-            if (!some(objCuld,o=>o.c!=0&&o.y<O.y+s*O.i&&o.y+s*o.c>O.y&&o.x==O.x+O.i*s)) {
-                O.x+=s/2;
-            } else {
-                O.s=0; // Switch to left
-            }
-        } else if (O.s%4==0) {
-            // Moving left
-            if (!some(objCuld,o=>o.c!=0&&o.y<O.y+s*O.i&&o.y+s*o.c>O.y&&O.x==o.x+o.c*s)) {
-                O.x-=s/2;
-            } else {
-                O.s=2; // Switch to right
-            }
-        }
-        
-        // Kill out of bounds powerups
-        if (O.x<c.xMin-O.i*s||O.x>s*10*24+c.xMax||O.y>s*10*16+c.yMax||O.y<c.yMin-s*10*6.7){
-            objects=filter(objects,o=>o!=O);
-            objCuld=filter(objCuld,o=>o!=O);
-        }
-    }
-    
-    //mario shells - check all players
     //mario shells
     let deadKTs=filter(objCuld,o=>o.id==1200);
     for(let i=0;i<deadKTs.length;i++) {
@@ -749,32 +698,14 @@ if (mode==1&&!won&&deathTimer==0) {
             if (O.s==1) {if (!some(objCuld,o=>o.c!=0&&o.y<O.y+s*O.c&&o.y+s*o.c>O.y&&o.x==O.x+O.c*s)) {O.x=O.x+s-O.x%s} else {O.s=2;}
             } else if (O.s==2) {if (!some(objCuld,o=>o.c!=0&&o.y<O.y+s*O.c&&o.y+s*o.c>O.y&&O.x==o.x+o.c*s)) {O.x=O.x-s-O.x%s} else {O.s=1;}
             }
-            
-            // Check shell interaction with ALL players
-            for(let j=0;j<players.length;j++) {
-                let pl=players[j];
-                if (O.s==0){
-                    // Shell stopped - any player can kick it
-                    if (pl.y+pl.h*s>=O.y&&pl.y<O.y+O.c*s&&pl.x+pl.w*s>O.x-s&&pl.x<O.x+O.c*s+s){
-                        if (pl.x+pl.w*s/2<=O.x+O.c*s/2){
-                            O.s=1;
-                        } else O.s=2;
-                        if (pl.y+pl.h*s<=O.y) pl.vy=-s*2;}
-                } else {
-                    // Shell moving - stomp from above to stop it
-                    if (O.x<pl.x+pl.w*s&&O.x+O.c*s>pl.x&&pl.y+pl.h*s==O.y) {
-                        O.s=0;
-                        pl.vy=-s*2;
-                    }
-                    // Shell kills player on side collision
-                    if (O.x<pl.x+s*pl.w&&O.x+s*O.c>pl.x&&O.y<pl.y+pl.h*s&&O.y+s*O.c>pl.y) {
-                        if (pl.takeDamage()) {
-                            pl.respawnPlayer();
-                        }
-                    }
-                }
-            }
-            
+            if (O.s==0){
+                if (p.y+p.h*s>=O.y&&p.y<O.y+O.c*s&&p.x+p.w*s>O.x-s&&p.x<O.x+O.c*s+s){
+                    if (p.x+p.w*s/2<=O.x+O.c*s/2){
+                        O.s=1;
+                    } else O.s=2;
+                    if (p.y+p.h*s<=O.y) p.vy=-s*2;}
+            } else if (O.x<p.x+p.w*s&&O.x+O.c*s>p.x&&p.y+p.h*s==O.y) {O.s=0;p.vy=-s*2;}
+            if (O.x<p.x+s*p.w&&O.x+s*O.c>p.x&&O.y<p.y+p.h*s&&O.y+s*O.c>p.y)deathTimer=1;
             if (O.x<c.xMin-O.i*s||O.x>s*10*24+c.xMax||O.y>s*10*16+c.yMax||O.y<c.yMin-s*10*6.7){
                 objects=filter(objects,o=>o!=O);
                 objCuld=filter(objCuld,o=>o!=O);}
@@ -793,26 +724,9 @@ if (mode==1&&!won&&deathTimer==0) {
         others.push({x:O.x+O.i/8*3*s,y:O.y+O.i/8*s,id:69.2,vx:0,vy:-s*1.5,i:O.i});
     }}
     let lasers=filter(others,o=>o.id-o.id%1==69);
-    for(let i=0;i<lasers.length;i++) {
+        for(let i=0;i<lasers.length;i++) {
         let O=lasers[i];
         O.x+=O.vx;O.y+=O.vy;
-        // Check collision with blocks
-        let laserSize = O.i/8*2*s;
-        if (some(objCuld,o=>o.c>0&&o.x<O.x+laserSize&&o.x+o.c*s>O.x&&o.y<O.y+laserSize&&o.y+o.c*s>O.y)) {
-            others=filter(others,o=>o!=O);
-            continue;
-        }
-        // Check collision with players
-        for(let j=0;j<players.length;j++) {
-            let pl=players[j];
-            if (O.x<pl.x+s*pl.w&&O.x+laserSize>pl.x&&O.y<pl.y+pl.h*s&&O.y+laserSize>pl.y) {
-                if (pl.takeDamage()) {
-                    deathTimer=1;
-                }
-                others=filter(others,o=>o!=O);
-                break;
-            }
-        }
         if (O.x<c.xMin-O.i*s||O.x>s*10*24+c.xMax||O.y>s*10*16+c.yMax||O.y<c.yMin-s*10*6.7){
             others=filter(others,o=>o!=O);}}
     
@@ -881,59 +795,73 @@ if (mode==1&&!won&&deathTimer==0) {
             player.x+=player.vx;
             player.y+=player.vy;}
         player.vy=Math.min(player.vy+s/4,s*10);//gravity
-
-        //stomp on enemies
-        let stompedEnemies=filter(objCuld,o=>(o.id==11||o.id==12||o.id==63||o.id==64||o.id==65)&&o.x<player.x+player.w*s+s&&o.x+o.c*s-s>player.x&&player.y+player.h*s>=o.y-s&&player.y+player.h*s<=o.y);
-        for(let i=0;i<stompedEnemies.length;i++) {
-            let O=stompedEnemies[i];
-            if (O.id==11||O.id==12){
-                var O2={...O};
-                O2.id*=100;O2.c=(O.id==11)?0:O2.c/2;O2.s=0;
-                if (O.id==12) {O2.x+=2*s;O2.y+=3*s;}
-                objects.push(O2);
-            }
-            objects=filter(objects,o=>o!=O);
-            objCuld=filter(objCuld,o=>o!=O);
-            player.vy=-s*3;}
-    });
+    //movement input
+    if (keyAPressed||keyLeftPressed){
+        p.vx=Math.max(-p.vMax*s,Math.min(-s,p.vx-s));
+    } else if (keyDPressed||keyRightPressed){
+        p.vx=Math.min(p.vMax*s,Math.max(s,p.vx+s));
+    } else p.vx=0;
+    if (jump&&(keyWPressed||keyUpPressed||keySpacePressed)) {
+        p.vy=-s*p.jumpPower;
+    }
+    jump=false;
     
-    // Update p reference for backward compatibility
-    if (players.length > 0) p = players[0];
+    //spring
+    if (some(objCuld,o=>o.id==58&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&p.y+p.h*s==o.y)) p.vy=-s*6;
+    if (some(objCuld,o=>o.id==58&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&p.y==o.y+o.i*s)) p.vy=s*2;
+    
+    //player collisions. collidable=if within player velocities and if not overlapping with player
+    let collidable=filter(objCuld,o=>o.c!=0&&o.x<p.x+s*p.w+Math.max(p.vx,0)&&o.x+o.c*s>p.x+Math.min(p.vx,0)&&o.y<p.y+s*p.h+Math.max(p.vy,0)&&o.y+o.c*s>p.y+Math.min(p.vy,0)&&!(o.x+o.c*s>p.x&&o.x<p.x+p.w*s&&o.y+o.c*s>p.y&&o.y<p.y+p.h*s));
+    let yC=filter(collidable,o=>o.x+o.c*s>p.x&&o.x<p.x+p.w*s).sort((a,b)=>-(b.y-a.y))[0];
+    let xC=filter(collidable,o=>o.y+o.c*s>p.y&&o.y<p.y+p.h*s).sort((a,b)=>-(b.x-a.x))[0];
+    if (collidable.length>0&&!xC&&!yC) {
+        p.x+=p.vx;
+        yC=filter(collidable,o=>o.x+o.c*s>p.x&&o.x<p.x+p.w*s).sort((a,b)=>-(b.y-a.y))[0];
+        collideY(yC);
+    } else if (yC) {
+        collideY(yC);
+        xC=filter(collidable,o=>o.y+o.c*s>p.y&&o.y<p.y+p.h*s).sort((a,b)=>-(b.x-a.x))[0];
+        collideX(xC);
+    } else if (xC) {
+        collideX(xC);
+        yC=filter(collidable,o=>o.x+o.c*s>p.x&&o.x<p.x+p.w*s).sort((a,b)=>-(b.y-a.y))[0];
+        collideY(yC);
+    } else {
+        p.x+=p.vx;
+        p.y+=p.vy;}
+    p.vy=Math.min(p.vy+s/4,s*10);//gravity
 
-    //Breakable Blocks and Powerup Spawning
+    //stomp on enemies
+    let stompedEnemies=filter(objCuld,o=>(o.id==11||o.id==12||o.id==63||o.id==64||o.id==65)&&o.x<p.x+p.w*s+s&&o.x+o.c*s-s>p.x&&p.y+p.h*s>=o.y-s&&p.y+p.h*s<=o.y);
+    for(let i=0;i<stompedEnemies.length;i++) {
+        let O=stompedEnemies[i];
+        if (O.id==11||O.id==12){
+            var O2={...O};
+            O2.id*=100;O2.c=(O.id==11)?0:O2.c/2;O2.s=0;
+            if (O.id==12) {O2.x+=2*s;O2.y+=3*s;}
+            objects.push(O2);
+        }
+        objects=filter(objects,o=>o!=O);
+        objCuld=filter(objCuld,o=>o!=O);
+        p.vy=-s*3;}
+
+    //Breakable Blocks
     let breakableObjs=filter(objCuld,o=>o.d[0]==1)
-    for(let i=0;i<breakableObjs.length;i++) {
-        let O=breakableObjs[i];
-        let playerBreak = some(players,pl=>O.x<pl.x+s*pl.w&&O.x+s*O.c>pl.x&&pl.y==O.y+O.c*s);
-        if (playerBreak||some(objCuld,o=>o.id==1200&&O.y+s<o.y+o.c*s&&O.y+O.c*s>o.y&&(o.x==O.x+O.c*s+s&&o.s==1||o.x+o.c*s==O.x-s&&o.s==2))) {
-            // Spawn powerup if d[2]==1
-            if (O.d[2]==1) {
-                let powerupId = Math.random() < 0.5 ? 13 : 14; // Random star or mushroom
-                objects.push({
-                    x: O.x,
-                    y: O.y - O.i * s,
-                    id: powerupId,
-                    c: 0,
-                    s: Math.random() < 0.5 ? 0 : 2, // Random direction (0=left, 2=right)
-                    i: O.i,
-                    l: O.l,
-                    d: [0,0,0,0],
-                    vx: 0,
-                    vy: 0
-                });
-            }
-            objects=filter(objects,o=>o!=O);
-            objCuld=filter(objCuld,o=>o!=O);}}
+        for(let i=0;i<breakableObjs.length;i++) {
+            let O=breakableObjs[i];
+            if (O.x<p.x+s*p.w&&O.x+s*O.c>p.x&&p.y==O.y+O.c*s||some(objCuld,o=>o.id==1200&&O.y+s<o.y+o.c*s&&O.y+O.c*s>o.y&&(o.x==O.x+O.c*s+s&&o.s==1||o.x+o.c*s==O.x-s&&o.s==2))) {
+                objects=filter(objects,o=>o!=O);
+                objCuld=filter(objCuld,o=>o!=O);}}
     
     //update switches
     let switches=filter(objCuld,o=>o.id==66);
     for(let i=0;i<switches.length;i++) {
         let O=switches[i];
         let canBe=objCuld.some(o=>(o.id==68||o.id==56||o.id<=12&&o.id>=11||o.id>=1000||o.id>=63&&o.id<=64)&&o.c!=0&&O.x<o.x+s*o.c&&O.x+s*O.i>o.x&&O.y<o.y+o.c*s&&O.y+s*O.i>o.y);
-        let playerOn=some(players,pl=>O.x<pl.x+s*pl.w&&O.x+s*O.i>pl.x&&O.y<pl.y+pl.h*s&&O.y+s*O.i>pl.y);
-        if (playerOn||canBe) {
+        if ((O.x<p.x+s*p.w&&O.x+s*O.i>p.x&&O.y<p.y+p.h*s&&O.y+s*O.i>p.y)||canBe) {
             O.s=O.s-O.s%2+1;
         } else {O.s=O.s-O.s%2;}}
+    
     
     //channels
     for (let j=0;j<channels.length;j++) {
@@ -950,28 +878,26 @@ if (mode==1&&!won&&deathTimer==0) {
         } else O.s=O.s-O.s%2+1-channels[Math.floor(O.s/4)-1];
         if (O.id==67) O.c=Math.abs(O.s%2-1)*O.i;}
 
-            //Keys - check all players - SHARED GLOBALLY
-    players.forEach(player => {
-        if(some(objCuld,o=>(o.id==60)&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y)) {
-            let collected0=objects.length;
-            objects=filter(objects,o=>!((o.id==60)&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y));
-            globalKeys+=(collected0-objects.length);}
-    });
+    //Keys
+    if(some(objCuld,o=>(o.id==60)&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&o.y<p.y+p.h*s&&o.y+s*o.i>p.y)) {
+        let collected0=objects.length;
+        objects=filter(objects,o=>!((o.id==60)&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&o.y<p.y+p.h*s&&o.y+s*o.i>p.y));
+        p.keys+=(collected0-objects.length);}
     
     //coins and powerups for all players
     players.forEach(player => {
         // Update player power up timers
         player.update();
         
-        // Coins - SHARED GLOBALLY
+        // Coins
         if(some(objCuld,o=>(o.id==10||o.id==57)&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y)) {
             let collected0=objects.length;
             objects=filter(objects,o=>!((o.id==10||o.id==57)&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y));
-            globalCoins+=(collected0-objects.length);}
+            player.coins+=(collected0-objects.length);}
         
-        // Invincibility powerup (star - id 13)
-        if(some(objCuld,o=>o.id==13&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y)) {
-            objects=filter(objects,o=>!(o.id==13&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y));
+        // Invincibility powerup (star - id 3)
+        if(some(objCuld,o=>o.id==3&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y)) {
+            objects=filter(objects,o=>!(o.id==3&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y));
             player.invincible = true;
             player.invincibleTimer = 300; // 5 seconds of invincibility
         }
@@ -986,53 +912,52 @@ if (mode==1&&!won&&deathTimer==0) {
                 player.y -= (player.h - oldHeight) * s; // Move up by the growth amount
                 player.powered = true;
             }}
-    });
-    
-    //portals - check each player
-    players.forEach(player => {
-        cI=objCuld.findIndex(o=>o.id==59&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y);
-        if (cI>-1) {if (player.portalCooldown==0){
-            cI2=objCuld.findIndex(o=>o.id==59&&objCuld[cI].s-objCuld[cI].s%4==o.s-o.s%4&&objCuld[cI]!=o);
-            if (cI2>-1) {
-                player.x=objCuld[cI2].x+objCuld[cI2].i*s/2-player.w*s/2;
-                player.y=objCuld[cI2].y+objCuld[cI2].i*s/2-player.h*s/2;
-                player.vx=0;player.vy=0;
-                player.portalCooldown=100;}} else player.portalCooldown-=1;
-        } else player.portalCooldown=0;
-    });
-    // Update camera to first player
-    if (players.length > 0) {
-        c.x=-Math.max(c.xMin,Math.min(c.xMax,players[0].x-s*10*12));
-        c.y=-Math.max(c.yMin,Math.min(c.yMax,players[0].y-s*10*8));
-    }
-    
-    
-    //checkpoint - each player checks independently
-    players.forEach(player => {
-        cI=objCuld.findIndex(o=>o.id==51&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y&&o.s%2==0);
-        if(cI>-1) {
-            // Mark this checkpoint as activated for THIS player
-            if (!player.checkpoint) player.checkpoint = objCuld[cI];
-            player.checkpoint = objCuld[cI];
-            player.startX = objCuld[cI].x + objCuld[cI].i * s / 2 - player.w * s / 2;
-            player.startY = objCuld[cI].y + objCuld[cI].i * s / 2 - player.h * s / 2;
-            objCuld[cI].s = objCuld[cI].s - objCuld[cI].s%2 + 1; // Activate visually
+        // Second life powerup (mushroom - id 4)
+        if(some(objCuld,o=>o.id==4&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y)) {
+            objects=filter(objects,o=>!(o.id==4&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y));
+            player.powered = true;
         }
     });
+    // Update legacy p reference
+    if (players.length > 0) {
+        p.coins = players[0].coins;
+        p.keys = players[0].keys;
+    }
+    
+    //portals
+    cI=objCuld.findIndex(o=>o.id==59&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&o.y<p.y+p.h*s&&o.y+s*o.i>p.y);
+    if (cI>-1) {if (portalCooldown==0){
+        cI2=objCuld.findIndex(o=>o.id==59&&objCuld[cI].s-objCuld[cI].s%4==o.s-o.s%4&&objCuld[cI]!=o);
+        if (cI2>-1) {
+            p.x=objCuld[cI2].x+objCuld[cI2].i*s/2-p.w*s/2;
+            p.y=objCuld[cI2].y+objCuld[cI2].i*s/2-p.h*s/2;
+            p.vx=0;p.vy=0;
+            c.x=-Math.max(c.xMin,Math.min(c.xMax,p.x-s*10*12));
+            c.y=-Math.max(c.yMin,Math.min(c.yMax,p.y-s*10*8));
+            portalCooldown=100;}} else portalCooldown-=1;
+    } else portalCooldown=0;
+    
+    
+    //checkpoint
+    cI=objCuld.findIndex(o=>o.id==51&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&o.y<p.y+p.h*s&&o.y+s*o.i>p.y&&o.s%2==0);
+    if(cI>-1) {
+        objects.forEach(o=>{if (o.id==51&&o.s%2==1)o.s-=1;});
+        objCuld[cI].s+=1;}
+        //Fix to implement culling
 
-    //win - any player can win
-    if(some(players,pl=>some(objCuld,o=>o.id==53&&o.x<pl.x+s*pl.w&&o.x+s*o.i>pl.x&&o.y<pl.y+pl.h*s&&o.y+s*o.i>pl.y))) {
+    //win
+    if(some(objCuld,o=>o.id==53&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&o.y<p.y+p.h*s&&o.y+s*o.i>p.y)) {
         won=true;
     
-    //death - check all players - INDIVIDUAL RESPAWN
+    //death - check all players
     } else {
         for(let i=0;i<players.length;i++) {
             let player = players[i];
             if (player.x<c.xMin-player.w*s||player.x>s*10*24+c.xMax||player.y>s*10*16+c.yMax
                 ||some(objCuld,o=>(o.id==11||o.id==12||o.id==26||o.id==62||o.id==63||o.id==64||o.id==65)&&o.x-s<player.x+s*player.w&&o.x-s+s*o.i>player.x&&o.y-s<player.y+player.h*s&&o.y-s+s*o.i>player.y)) {
                 if (player.takeDamage()) {
-                    // Respawn just this player
-                    player.respawnPlayer();
+                    deathTimer=1;
+                    break;
                 }
             }
         }
