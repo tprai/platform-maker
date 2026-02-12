@@ -178,9 +178,9 @@ function drawObj(o,transform=0) {
         drawRect(o.x+s,o.y+s,s*8*o.i/10,s*8*o.i/10,"150,150,150");return;}
     if (o.id==2)  {drawAutoTile(o,orangeBricks);return;}
     if (o.id==2.5)  {ctx.drawImage(orangeBricks,0*16,3*16,16,16,o.x+c.x,o.y+c.y,o.i*s,o.i*s);return;}
-    if (o.id==3) {ctx.drawImage(mario,3*16,0*16,16,16,o.x+c.x,o.y+c.y,o.i*s,o.i*s);return;} // Invincibility powerup (star)
-    if (o.id==4) {ctx.drawImage(mario,0*16,0*16,16,16,o.x+c.x,o.y+c.y,o.i*s,o.i*s);return;} // Second life powerup (mushroom)
-    if (o.id>=5&&o.id<=9) {ctx.drawImage(mario,(o.id-3)*16,0,16,16,o.x+c.x,o.y+c.y,o.i*s,o.i*s);return;}
+    if (o.id>=3&&o.id<=9) {ctx.drawImage(mario,(o.id-3)*16,0,16,16,o.x+c.x,o.y+c.y,o.i*s,o.i*s);return;}
+    if (o.id==13) {drawRect(o.x,o.y,o.i*s,o.i*s,"255,255,100");return;} // Star powerup placeholder
+    if (o.id==14) {drawRect(o.x,o.y,o.i*s,o.i*s,"255,150,150");return;} // Mushroom powerup placeholder
     if (o.id==10) {ctx.drawImage(marioCoin,Math.max(0,Math.floor(-1.5*Math.cos(Math.PI*fCT/22)+0.9))*16,0*16,16,16,o.x+c.x,o.y+c.y,o.i*s,o.i*s);return;}
     if (o.id==11) {ctx.drawImage(marioEnemies,Math.floor(fCT%20/10)*16,0*16,16,16,o.x+c.x-transform*s,o.y+c.y-transform*s*2+o.i*s*0.15,o.i*s,o.i*s*0.85);return;}
     if (o.id==12) {ctx.drawImage(marioEnemies,Math.floor(fCT%20/10)*16,1*16+Math.floor(o.s%4/2)*24,16,24,o.x+c.x-transform*s,o.y+c.y-transform*s*2-o.i*s*0.2,o.i*s,o.i*s*1.2);return;}
@@ -263,7 +263,7 @@ function getCollision(id) {//when placing in  editore
     if (editCollision==0) return 0;
     if (editCollision==1) return editSize;
     if (id==11||id==12||id==62||id==63||id==64||id==65) return editSize-2;
-    if (id==10||id==25||id==26||id==51||id==52||id==53||id==57||id==59||id==60||id==66) return 0;
+    if (id==10||id==13||id==14||id==25||id==26||id==51||id==52||id==53||id==57||id==59||id==60||id==66) return 0;
     return editSize;}
 function getFromTileset(me) {//b= auto-tile id
     let Q,W,E,A,D,Z,X,C;
@@ -382,22 +382,42 @@ class Player {
     constructor(x=0, y=0) {
         this.x = x;
         this.y = y;
-        this.vx = 2;
+        this.vx = 0;
         this.vy = 0;
         this.vMax = 1.5;
         this.jumpPower = 4;
         this.w = 6;
         this.h = 8;
-        this.coins = 0;
         this.startX = x;
         this.startY = y;
-        this.keys = 0;
         this.jump = false;
         this.deathTimer = 0;
         this.portalCooldown = 0;
         this.invincible = false;
         this.invincibleTimer = 0;
         this.powered = false; // second life powerup (like Super Mario)
+        this.checkpoint = null; // Individual checkpoint
+        this.spawnBlock = null; // Remember spawn block
+    }
+    
+    respawnPlayer() {
+        // Respawn this player at their checkpoint or spawn point
+        if (this.checkpoint) {
+            this.x = this.checkpoint.x + this.checkpoint.i * s / 2 - this.w * s / 2;
+            this.y = this.checkpoint.y + this.checkpoint.i * s / 2 - this.h * s / 2;
+        } else if (this.spawnBlock) {
+            this.x = this.spawnBlock.x + this.spawnBlock.i * s / 2 - this.w * s / 2;
+            this.y = this.spawnBlock.y + this.spawnBlock.i * s / 2 - this.h * s / 2;
+        } else {
+            this.x = this.startX;
+            this.y = this.startY;
+        }
+        this.vx = 0;
+        this.vy = 0;
+        this.deathTimer = 0;
+        this.invincible = false;
+        this.invincibleTimer = 0;
+        this.powered = false;
     }
     
     takeDamage() {
@@ -435,8 +455,10 @@ let noEditLevel=false;
 let mode=1;
 let screenHeightBlocks=16;//blocks (10px) that fit height of canvas
 let s=canvas.height/screenHeightBlocks/10;//size of one pixel
-let p={x:0,y:0,vx:2,vy:0,vMax:1.5,jumpPower:4,w:6,h:8,coins:0,startX:0,startY:0,keys:0}; // Keep for backward compatibility
+let p={x:0,y:0,vx:2,vy:0,vMax:1.5,jumpPower:4,w:6,h:8,startX:0,startY:0}; // Keep for backward compatibility
 let players = []; // Array to hold all player instances
+let globalCoins = 0; // Shared across all players
+let globalKeys = 0; // Shared across all players
 let c={x:0,y:0,xMin:0,xMax:0,yMin:0,yMax:0,vx:0,vy:0,z:1};//camera pos
 let deathTimer=0;
 let portalCooldown=0;
@@ -509,6 +531,24 @@ objects=sizedLevel();
 let previousObjects=[toSave(objects)];
 let layers = Array.from({ length: 100 }, () => []);
 
+// Initialize players on first load if mode==1
+if (mode == 1 && players.length == 0) {
+    let spawnBlocks = objects.filter(o => o.id == 25);
+    if (spawnBlocks.length > 0) {
+        spawnBlocks.forEach(spawn => {
+            let player = new Player(
+                spawn.x + spawn.i * s / 2 - 3 * s,
+                spawn.y + spawn.i * s / 2 - 4 * s
+            );
+            player.spawnBlock = spawn;
+            players.push(player);
+        });
+    } else {
+        players.push(new Player(0, 0));
+    }
+    if (players.length > 0) p = players[0];
+}
+
 
 /*let url = new URL(window.location.toLocaleString()).searchParams;let urlObjs=url.get('s');
 if (urlObjs) {try{loadSettings(urlObjs);objects=toObjects(urlObjs.substring(urlObjs.indexOf("–")+1));objects=sizedLevel();if (toSave(objects)!=previousObjects[0]){previousObjects.unshift(toSave(objects));toPlayMode();}}catch(e){alert("Error Loading Level Data");}
@@ -542,16 +582,16 @@ if (mode==1&&!won&&deathTimer==0) {
     c.y=-Math.max(c.yMin+Math.min(0,(p.y-c.yMax-s*20)/1.5),Math.min(c.yMax,-c.y+c.vy));
     
     
-    //Lock Detection (occurs before colision) - check all players
+    //Lock Detection (occurs before colision) - check all players - USES GLOBAL KEYS
     let lockeds=filter(objCuld,o=>o.id==61);
     for(let i=0;i<lockeds.length;i++) {
         let O=lockeds[i];
         for(let j=0;j<players.length;j++) {
             let pl=players[j];
-            if (pl.keys>0&&(O.x==pl.x+pl.w*s&&O.y<pl.y+s*pl.h&&O.y+s*O.c>pl.y||O.x+O.c*s==pl.x&&O.y<pl.y+s*pl.h&&O.y+s*O.c>pl.y||O.y==pl.y+pl.h*s&&O.x<pl.x+s*pl.w&&O.x+s*O.c>pl.x||O.y+O.c*s==pl.y&&O.x<pl.x+s*pl.w&&O.x+s*O.c>pl.x)) {
+            if (globalKeys>0&&(O.x==pl.x+pl.w*s&&O.y<pl.y+s*pl.h&&O.y+s*O.c>pl.y||O.x+O.c*s==pl.x&&O.y<pl.y+s*pl.h&&O.y+s*O.c>pl.y||O.y==pl.y+pl.h*s&&O.x<pl.x+s*pl.w&&O.x+s*O.c>pl.x||O.y+O.c*s==pl.y&&O.x<pl.x+s*pl.w&&O.x+s*O.c>pl.x)) {
                 objects=filter(objects,o=>o!=O);
                 objCuld=filter(objCuld,o=>o!=O);
-                pl.keys-=1;
+                globalKeys-=1;
                 break;
             }
         }
@@ -613,6 +653,47 @@ if (mode==1&&!won&&deathTimer==0) {
         let O=deadGoombas[i];
         O.s+=.1;
         if (O.s>2.8) objects=filter(objects,o=>o!=O);}
+    
+    //moving powerups (id 13=star, id 14=mushroom)
+    let movingPowerups=filter(objCuld,o=>o.id==13||o.id==14);
+    for(let i=0;i<movingPowerups.length;i++) {
+        let O=movingPowerups[i];
+        // Initialize physics if not present
+        if (!O.vy) O.vy=0;
+        
+        // Gravity
+        let yC=filter(objCuld,o=>o.c>0&&o.x+o.c*s>O.x&&o.x<O.x+O.i*s&&o.y>=O.y+O.i*s&&o.y<=O.y+O.i*s+O.vy&&O!=o).sort((a,b)=>Math.sign(O.y-a.y)*(a.y-b.y))[0];
+        if (yC) {
+            O.y=yC.y-O.i*s;
+            O.vy=0;
+        } else {
+            O.y+=O.vy;
+        }
+        O.vy+=s/4;
+        
+        // Horizontal movement
+        if (O.s%4==2) {
+            // Moving right
+            if (!some(objCuld,o=>o.c!=0&&o.y<O.y+s*O.i&&o.y+s*o.c>O.y&&o.x==O.x+O.i*s)) {
+                O.x+=s/2;
+            } else {
+                O.s=0; // Switch to left
+            }
+        } else if (O.s%4==0) {
+            // Moving left
+            if (!some(objCuld,o=>o.c!=0&&o.y<O.y+s*O.i&&o.y+s*o.c>O.y&&O.x==o.x+o.c*s)) {
+                O.x-=s/2;
+            } else {
+                O.s=2; // Switch to right
+            }
+        }
+        
+        // Kill out of bounds powerups
+        if (O.x<c.xMin-O.i*s||O.x>s*10*24+c.xMax||O.y>s*10*16+c.yMax||O.y<c.yMin-s*10*6.7){
+            objects=filter(objects,o=>o!=O);
+            objCuld=filter(objCuld,o=>o!=O);
+        }
+    }
     
     //mario shells
     let deadKTs=filter(objCuld,o=>o.id==1200);
@@ -677,6 +758,51 @@ if (mode==1&&!won&&deathTimer==0) {
             others=filter(others,o=>o!=O);}}
     
     
+    // Player-to-player collisions
+    for(let i=0;i<players.length;i++) {
+        for(let j=i+1;j<players.length;j++) {
+            let p1 = players[i];
+            let p2 = players[j];
+            
+            // Check if players overlap
+            if (p1.x < p2.x + p2.w * s && p1.x + p1.w * s > p2.x &&
+                p1.y < p2.y + p2.h * s && p1.y + p1.h * s > p2.y) {
+                
+                // Horizontal collision
+                if (Math.abs((p1.x + p1.w * s / 2) - (p2.x + p2.w * s / 2)) > Math.abs((p1.y + p1.h * s / 2) - (p2.y + p2.h * s / 2))) {
+                    if (p1.x < p2.x) {
+                        let overlap = p1.x + p1.w * s - p2.x;
+                        p1.x -= overlap / 2;
+                        p2.x += overlap / 2;
+                    } else {
+                        let overlap = p2.x + p2.w * s - p1.x;
+                        p1.x += overlap / 2;
+                        p2.x -= overlap / 2;
+                    }
+                    p1.vx = 0;
+                    p2.vx = 0;
+                } else {
+                    // Vertical collision
+                    if (p1.y < p2.y) {
+                        let overlap = p1.y + p1.h * s - p2.y;
+                        p1.y -= overlap / 2;
+                        p2.y += overlap / 2;
+                        p1.vy = Math.min(p1.vy, 0);
+                        p2.vy = Math.max(p2.vy, 0);
+                        p2.jump = true;
+                    } else {
+                        let overlap = p2.y + p2.h * s - p1.y;
+                        p1.y += overlap / 2;
+                        p2.y -= overlap / 2;
+                        p1.vy = Math.max(p1.vy, 0);
+                        p2.vy = Math.min(p2.vy, 0);
+                        p1.jump = true;
+                    }
+                }
+            }
+        }
+    }
+    
     // Process each player independently
     players.forEach(player => {
         //movement input
@@ -733,12 +859,28 @@ if (mode==1&&!won&&deathTimer==0) {
     // Update p reference for backward compatibility
     if (players.length > 0) p = players[0];
 
-    //Breakable Blocks
+    //Breakable Blocks and Powerup Spawning
     let breakableObjs=filter(objCuld,o=>o.d[0]==1)
         for(let i=0;i<breakableObjs.length;i++) {
             let O=breakableObjs[i];
             let playerBreak = some(players,pl=>O.x<pl.x+s*pl.w&&O.x+s*O.c>pl.x&&pl.y==O.y+O.c*s);
             if (playerBreak||some(objCuld,o=>o.id==1200&&O.y+s<o.y+o.c*s&&O.y+O.c*s>o.y&&(o.x==O.x+O.c*s+s&&o.s==1||o.x+o.c*s==O.x-s&&o.s==2))) {
+                // Spawn powerup if d[2]==1
+                if (O.d[2]==1) {
+                    let powerupId = Math.random() < 0.5 ? 13 : 14; // Random star or mushroom
+                    objects.push({
+                        x: O.x,
+                        y: O.y - O.i * s,
+                        id: powerupId,
+                        c: 0,
+                        s: Math.random() < 0.5 ? 0 : 2, // Random direction (0=left, 2=right)
+                        i: O.i,
+                        l: O.l,
+                        d: [0,0,0,0],
+                        vx: 0,
+                        vy: 0
+                    });
+                }
                 objects=filter(objects,o=>o!=O);
                 objCuld=filter(objCuld,o=>o!=O);}}
     
@@ -768,12 +910,12 @@ if (mode==1&&!won&&deathTimer==0) {
         } else O.s=O.s-O.s%2+1-channels[Math.floor(O.s/4)-1];
         if (O.id==67) O.c=Math.abs(O.s%2-1)*O.i;}
 
-    //Keys - check all players
+            //Keys - check all players - SHARED GLOBALLY
     players.forEach(player => {
         if(some(objCuld,o=>(o.id==60)&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y)) {
             let collected0=objects.length;
             objects=filter(objects,o=>!((o.id==60)&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y));
-            player.keys+=(collected0-objects.length);}
+            globalKeys+=(collected0-objects.length);}
     });
     
     //coins and powerups for all players
@@ -781,30 +923,25 @@ if (mode==1&&!won&&deathTimer==0) {
         // Update player power up timers
         player.update();
         
-        // Coins
+        // Coins - SHARED GLOBALLY
         if(some(objCuld,o=>(o.id==10||o.id==57)&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y)) {
             let collected0=objects.length;
             objects=filter(objects,o=>!((o.id==10||o.id==57)&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y));
-            player.coins+=(collected0-objects.length);}
+            globalCoins+=(collected0-objects.length);}
         
-        // Invincibility powerup (star - id 3)
-        if(some(objCuld,o=>o.id==3&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y)) {
-            objects=filter(objects,o=>!(o.id==3&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y));
+        // Invincibility powerup (star - id 13)
+        if(some(objCuld,o=>o.id==13&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y)) {
+            objects=filter(objects,o=>!(o.id==13&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y));
             player.invincible = true;
             player.invincibleTimer = 300; // 5 seconds of invincibility
         }
         
-        // Second life powerup (mushroom - id 4)
-        if(some(objCuld,o=>o.id==4&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y)) {
-            objects=filter(objects,o=>!(o.id==4&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y));
+        // Second life powerup (mushroom - id 14)
+        if(some(objCuld,o=>o.id==14&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y)) {
+            objects=filter(objects,o=>!(o.id==14&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y));
             player.powered = true;
         }
     });
-    // Update legacy p reference
-    if (players.length > 0) {
-        p.coins = players[0].coins;
-        p.keys = players[0].keys;
-    }
     
     //portals - check each player
     players.forEach(player => {
@@ -842,15 +979,15 @@ if (mode==1&&!won&&deathTimer==0) {
     if(some(players,pl=>some(objCuld,o=>o.id==53&&o.x<pl.x+s*pl.w&&o.x+s*o.i>pl.x&&o.y<pl.y+pl.h*s&&o.y+s*o.i>pl.y))) {
         won=true;
     
-    //death - check all players
+    //death - check all players - INDIVIDUAL RESPAWN
     } else {
         for(let i=0;i<players.length;i++) {
             let player = players[i];
             if (player.x<c.xMin-player.w*s||player.x>s*10*24+c.xMax||player.y>s*10*16+c.yMax
                 ||some(objCuld,o=>(o.id==11||o.id==12||o.id==26||o.id==62||o.id==63||o.id==64||o.id==65)&&o.x-s<player.x+s*player.w&&o.x-s+s*o.i>player.x&&o.y-s<player.y+player.h*s&&o.y-s+s*o.i>player.y)) {
                 if (player.takeDamage()) {
-                    deathTimer=1;
-                    break;
+                    // Respawn just this player
+                    player.respawnPlayer();
                 }
             }
         }
