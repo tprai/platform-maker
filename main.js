@@ -216,27 +216,18 @@ function respawn() {
                 spawn.x + spawn.i * s / 2 - 3 * s,
                 spawn.y + spawn.i * s / 2 - 4 * s
             );
+            // Each player remembers their own spawn block
+            player.spawnBlock = spawn;
             players.push(player);
         });
     } else {
-        // If no spawn blocks, check for checkpoint
-        let checkpointIndex = objects.findIndex(o => o.id == 51 && o.s == 1);
-        if (checkpointIndex >= 0) {
-            let checkpoint = objects[checkpointIndex];
-            players.push(new Player(
-                checkpoint.x + checkpoint.i * s / 2 - 3 * s,
-                checkpoint.y + checkpoint.i * s / 2 - 4 * s
-            ));
-        } else {
-            // Default spawn
-            players.push(new Player(0, 0));
-        }
+        // Default spawn if no spawn blocks
+        players.push(new Player(0, 0));
     }
     
     // Set camera to first player
     if (players.length > 0) {
         p = players[0]; // Keep p reference for backward compatibility
-        jump = false;
         c.x = -Math.max(c.xMin, Math.min(c.xMax, players[0].x - s * 10 * 12));
         c.y = -Math.max(c.yMin, Math.min(c.yMax, players[0].y - s * 10 * 8));
     }
@@ -551,32 +542,43 @@ if (mode==1&&!won&&deathTimer==0) {
     c.y=-Math.max(c.yMin+Math.min(0,(p.y-c.yMax-s*20)/1.5),Math.min(c.yMax,-c.y+c.vy));
     
     
-    //Lock Detection (occurs before colision)
+    //Lock Detection (occurs before colision) - check all players
     let lockeds=filter(objCuld,o=>o.id==61);
     for(let i=0;i<lockeds.length;i++) {
         let O=lockeds[i];
-        if (p.keys>0&&(O.x==p.x+p.w*s&&O.y<p.y+s*p.h&&O.y+s*O.c>p.y||O.x+O.c*s==p.x&&O.y<p.y+s*p.h&&O.y+s*O.c>p.y||O.y==p.y+p.h*s&&O.x<p.x+s*p.w&&O.x+s*O.c>p.x||O.y+O.c*s==p.y&&O.x<p.x+s*p.w&&O.x+s*O.c>p.x)) {
-            objects=filter(objects,o=>o!=O);
-            objCuld=filter(objCuld,o=>o!=O);
-            p.keys-=1;}}
+        for(let j=0;j<players.length;j++) {
+            let pl=players[j];
+            if (pl.keys>0&&(O.x==pl.x+pl.w*s&&O.y<pl.y+s*pl.h&&O.y+s*O.c>pl.y||O.x+O.c*s==pl.x&&O.y<pl.y+s*pl.h&&O.y+s*O.c>pl.y||O.y==pl.y+pl.h*s&&O.x<pl.x+s*pl.w&&O.x+s*O.c>pl.x||O.y+O.c*s==pl.y&&O.x<pl.x+s*pl.w&&O.x+s*O.c>pl.x)) {
+                objects=filter(objects,o=>o!=O);
+                objCuld=filter(objCuld,o=>o!=O);
+                pl.keys-=1;
+                break;
+            }
+        }
+    }
     
-    //pushable blocks
+    //pushable blocks - check all players
     let pushableObjs=filter(objCuld,o=>o.d[1]==1);
     for(let i=0;i<pushableObjs.length;i++) {
         let O=pushableObjs[i];
         if (O.s==0) {
-            if (O.x==p.x+p.w*s&&O.y<p.y+s*p.h&&O.y+s*O.c>p.y&&!some(objCuld,o=>o.y<O.y+s*O.c&&o.y+s*o.c>O.y&&o.x==O.x+O.c*s)) {O.x+=s;O.s=3;continue;}
-            if (O.x+O.c*s==p.x&&O.y<p.y+s*p.h&&O.y+s*O.c>p.y&&!some(objCuld,o=>o.y<O.y+s*O.c&&o.y+s*o.c>O.y&&O.x==o.x+o.c*s)) {O.x-=s;O.s=3;continue;}
-            if (O.y==p.y+p.h*s&&O.x<p.x+s*p.w&&O.x+s*O.c>p.x&&!some(objCuld,o=>o.x<O.x+s*O.c&&o.x+s*o.c>O.x&&o.y==O.y+O.c*s)) {O.y+=s;O.s=3;continue;}
-            if (O.y+O.c*s==p.y&&O.x<p.x+s*p.w&&O.x+s*O.c>p.x&&!some(objCuld,o=>o.x<O.x+s*O.c&&o.x+s*o.c>O.x&&O.y==o.y+o.c*s)) {O.y-=s;O.s=3;continue;}
+            for(let j=0;j<players.length;j++) {
+                let pl=players[j];
+                if (O.x==pl.x+pl.w*s&&O.y<pl.y+s*pl.h&&O.y+s*O.c>pl.y&&!some(objCuld,o=>o.y<O.y+s*O.c&&o.y+s*o.c>O.y&&o.x==O.x+O.c*s)) {O.x+=s;O.s=3;break;}
+                if (O.x+O.c*s==pl.x&&O.y<pl.y+s*pl.h&&O.y+s*O.c>pl.y&&!some(objCuld,o=>o.y<O.y+s*O.c&&o.y+s*o.c>O.y&&O.x==o.x+o.c*s)) {O.x-=s;O.s=3;break;}
+                if (O.y==pl.y+pl.h*s&&O.x<pl.x+s*pl.w&&O.x+s*O.c>pl.x&&!some(objCuld,o=>o.x<O.x+s*O.c&&o.x+s*o.c>O.x&&o.y==O.y+O.c*s)) {O.y+=s;O.s=3;break;}
+                if (O.y+O.c*s==pl.y&&O.x<pl.x+s*pl.w&&O.x+s*O.c>pl.x&&!some(objCuld,o=>o.x<O.x+s*O.c&&o.x+s*o.c>O.x&&O.y==o.y+o.c*s)) {O.y-=s;O.s=3;break;}
+            }
         } else O.s=Math.max(0,O.s-1);}
 
-    //moving blocks
+    //moving blocks - check all players
     let movingBlocks=filter(objCuld,o=>o.id==68);
     for(let i=0;i<movingBlocks.length;i++) {
         let O=movingBlocks[i];
-            if (O.s%2==0){if (!some(objCuld,o=>o.x<O.x+s*O.c&&o.x+s*o.c>O.x&&o.y==O.y+O.c*s)&&!(O.y+O.c*s==p.y&&O.x<p.x+s*p.w&&O.x+s*O.c>p.x)) {if(fCT%3==0)O.y+=s;} else {O.s+=0;}
-            } else       {if (!some(objCuld,o=>o.x<O.x+s*O.c&&o.x+s*o.c>O.x&&O.y==o.y+o.c*s)&&!(O.y==p.y+p.h*s&&O.x<p.x+s*p.w&&O.x+s*O.c>p.x)) {if(fCT%3==0)O.y-=s;} else {O.s-=1;}}}
+            let playerBelow=some(players,pl=>O.y+O.c*s==pl.y&&O.x<pl.x+s*pl.w&&O.x+s*O.c>pl.x);
+            let playerAbove=some(players,pl=>O.y==pl.y+pl.h*s&&O.x<pl.x+s*pl.w&&O.x+s*O.c>pl.x);
+            if (O.s%2==0){if (!some(objCuld,o=>o.x<O.x+s*O.c&&o.x+s*o.c>O.x&&o.y==O.y+O.c*s)&&!playerBelow) {if(fCT%3==0)O.y+=s;} else {O.s+=0;}
+            } else       {if (!some(objCuld,o=>o.x<O.x+s*O.c&&o.x+s*o.c>O.x&&O.y==o.y+o.c*s)&&!playerAbove) {if(fCT%3==0)O.y-=s;} else {O.s-=1;}}}
 
     //enemy movement
     let movingEnemies=filter(objCuld,o=>o.id==11||o.id==12||o.id==63||o.id==64);
@@ -654,65 +656,89 @@ if (mode==1&&!won&&deathTimer==0) {
         for(let i=0;i<lasers.length;i++) {
         let O=lasers[i];
         O.x+=O.vx;O.y+=O.vy;
+        // Check collision with blocks
+        let laserSize = O.i/8*2*s;
+        if (some(objCuld,o=>o.c>0&&o.x<O.x+laserSize&&o.x+o.c*s>O.x&&o.y<O.y+laserSize&&o.y+o.c*s>O.y)) {
+            others=filter(others,o=>o!=O);
+            continue;
+        }
+        // Check collision with players
+        for(let j=0;j<players.length;j++) {
+            let pl=players[j];
+            if (O.x<pl.x+s*pl.w&&O.x+laserSize>pl.x&&O.y<pl.y+pl.h*s&&O.y+laserSize>pl.y) {
+                if (pl.takeDamage()) {
+                    deathTimer=1;
+                }
+                others=filter(others,o=>o!=O);
+                break;
+            }
+        }
         if (O.x<c.xMin-O.i*s||O.x>s*10*24+c.xMax||O.y>s*10*16+c.yMax||O.y<c.yMin-s*10*6.7){
             others=filter(others,o=>o!=O);}}
     
     
-    //movement input
-    if (keyAPressed||keyLeftPressed){
-        p.vx=Math.max(-p.vMax*s,Math.min(-s,p.vx-s));
-    } else if (keyDPressed||keyRightPressed){
-        p.vx=Math.min(p.vMax*s,Math.max(s,p.vx+s));
-    } else p.vx=0;
-    if (jump&&(keyWPressed||keyUpPressed||keySpacePressed)) {
-        p.vy=-s*p.jumpPower;
-    }
-    jump=false;
-    
-    //spring
-    if (some(objCuld,o=>o.id==58&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&p.y+p.h*s==o.y)) p.vy=-s*6;
-    if (some(objCuld,o=>o.id==58&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&p.y==o.y+o.i*s)) p.vy=s*2;
-    
-    //player collisions. collidable=if within player velocities and if not overlapping with player
-    let collidable=filter(objCuld,o=>o.c!=0&&o.x<p.x+s*p.w+Math.max(p.vx,0)&&o.x+o.c*s>p.x+Math.min(p.vx,0)&&o.y<p.y+s*p.h+Math.max(p.vy,0)&&o.y+o.c*s>p.y+Math.min(p.vy,0)&&!(o.x+o.c*s>p.x&&o.x<p.x+p.w*s&&o.y+o.c*s>p.y&&o.y<p.y+p.h*s));
-    let yC=filter(collidable,o=>o.x+o.c*s>p.x&&o.x<p.x+p.w*s).sort((a,b)=>-(b.y-a.y))[0];
-    let xC=filter(collidable,o=>o.y+o.c*s>p.y&&o.y<p.y+p.h*s).sort((a,b)=>-(b.x-a.x))[0];
-    if (collidable.length>0&&!xC&&!yC) {
-        p.x+=p.vx;
-        yC=filter(collidable,o=>o.x+o.c*s>p.x&&o.x<p.x+p.w*s).sort((a,b)=>-(b.y-a.y))[0];
-        collideY(yC);
-    } else if (yC) {
-        collideY(yC);
-        xC=filter(collidable,o=>o.y+o.c*s>p.y&&o.y<p.y+p.h*s).sort((a,b)=>-(b.x-a.x))[0];
-        collideX(xC);
-    } else if (xC) {
-        collideX(xC);
-        yC=filter(collidable,o=>o.x+o.c*s>p.x&&o.x<p.x+p.w*s).sort((a,b)=>-(b.y-a.y))[0];
-        collideY(yC);
-    } else {
-        p.x+=p.vx;
-        p.y+=p.vy;}
-    p.vy=Math.min(p.vy+s/4,s*10);//gravity
-
-    //stomp on enemies
-    let stompedEnemies=filter(objCuld,o=>(o.id==11||o.id==12||o.id==63||o.id==64||o.id==65)&&o.x<p.x+p.w*s+s&&o.x+o.c*s-s>p.x&&p.y+p.h*s>=o.y-s&&p.y+p.h*s<=o.y);
-    for(let i=0;i<stompedEnemies.length;i++) {
-        let O=stompedEnemies[i];
-        if (O.id==11||O.id==12){
-            var O2={...O};
-            O2.id*=100;O2.c=(O.id==11)?0:O2.c/2;O2.s=0;
-            if (O.id==12) {O2.x+=2*s;O2.y+=3*s;}
-            objects.push(O2);
+    // Process each player independently
+    players.forEach(player => {
+        //movement input
+        if (keyAPressed||keyLeftPressed){
+            player.vx=Math.max(-player.vMax*s,Math.min(-s,player.vx-s));
+        } else if (keyDPressed||keyRightPressed){
+            player.vx=Math.min(player.vMax*s,Math.max(s,player.vx+s));
+        } else player.vx=0;
+        if (player.jump&&(keyWPressed||keyUpPressed||keySpacePressed)) {
+            player.vy=-s*player.jumpPower;
         }
-        objects=filter(objects,o=>o!=O);
-        objCuld=filter(objCuld,o=>o!=O);
-        p.vy=-s*3;}
+        player.jump=false;
+        
+        //spring
+        if (some(objCuld,o=>o.id==58&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&player.y+player.h*s==o.y)) player.vy=-s*6;
+        if (some(objCuld,o=>o.id==58&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&player.y==o.y+o.i*s)) player.vy=s*2;
+        
+        //player collisions. collidable=if within player velocities and if not overlapping with player
+        let collidable=filter(objCuld,o=>o.c!=0&&o.x<player.x+s*player.w+Math.max(player.vx,0)&&o.x+o.c*s>player.x+Math.min(player.vx,0)&&o.y<player.y+s*player.h+Math.max(player.vy,0)&&o.y+o.c*s>player.y+Math.min(player.vy,0)&&!(o.x+o.c*s>player.x&&o.x<player.x+player.w*s&&o.y+o.c*s>player.y&&o.y<player.y+player.h*s));
+        let yC=filter(collidable,o=>o.x+o.c*s>player.x&&o.x<player.x+player.w*s).sort((a,b)=>-(b.y-a.y))[0];
+        let xC=filter(collidable,o=>o.y+o.c*s>player.y&&o.y<player.y+player.h*s).sort((a,b)=>-(b.x-a.x))[0];
+        if (collidable.length>0&&!xC&&!yC) {
+            player.x+=player.vx;
+            yC=filter(collidable,o=>o.x+o.c*s>player.x&&o.x<player.x+player.w*s).sort((a,b)=>-(b.y-a.y))[0];
+            collideY(player,yC);
+        } else if (yC) {
+            collideY(player,yC);
+            xC=filter(collidable,o=>o.y+o.c*s>player.y&&o.y<player.y+player.h*s).sort((a,b)=>-(b.x-a.x))[0];
+            collideX(player,xC);
+        } else if (xC) {
+            collideX(player,xC);
+            yC=filter(collidable,o=>o.x+o.c*s>player.x&&o.x<player.x+player.w*s).sort((a,b)=>-(b.y-a.y))[0];
+            collideY(player,yC);
+        } else {
+            player.x+=player.vx;
+            player.y+=player.vy;}
+        player.vy=Math.min(player.vy+s/4,s*10);//gravity
+
+        //stomp on enemies
+        let stompedEnemies=filter(objCuld,o=>(o.id==11||o.id==12||o.id==63||o.id==64||o.id==65)&&o.x<player.x+player.w*s+s&&o.x+o.c*s-s>player.x&&player.y+player.h*s>=o.y-s&&player.y+player.h*s<=o.y);
+        for(let i=0;i<stompedEnemies.length;i++) {
+            let O=stompedEnemies[i];
+            if (O.id==11||O.id==12){
+                var O2={...O};
+                O2.id*=100;O2.c=(O.id==11)?0:O2.c/2;O2.s=0;
+                if (O.id==12) {O2.x+=2*s;O2.y+=3*s;}
+                objects.push(O2);
+            }
+            objects=filter(objects,o=>o!=O);
+            objCuld=filter(objCuld,o=>o!=O);
+            player.vy=-s*3;}
+    });
+    
+    // Update p reference for backward compatibility
+    if (players.length > 0) p = players[0];
 
     //Breakable Blocks
     let breakableObjs=filter(objCuld,o=>o.d[0]==1)
         for(let i=0;i<breakableObjs.length;i++) {
             let O=breakableObjs[i];
-            if (O.x<p.x+s*p.w&&O.x+s*O.c>p.x&&p.y==O.y+O.c*s||some(objCuld,o=>o.id==1200&&O.y+s<o.y+o.c*s&&O.y+O.c*s>o.y&&(o.x==O.x+O.c*s+s&&o.s==1||o.x+o.c*s==O.x-s&&o.s==2))) {
+            let playerBreak = some(players,pl=>O.x<pl.x+s*pl.w&&O.x+s*O.c>pl.x&&pl.y==O.y+O.c*s);
+            if (playerBreak||some(objCuld,o=>o.id==1200&&O.y+s<o.y+o.c*s&&O.y+O.c*s>o.y&&(o.x==O.x+O.c*s+s&&o.s==1||o.x+o.c*s==O.x-s&&o.s==2))) {
                 objects=filter(objects,o=>o!=O);
                 objCuld=filter(objCuld,o=>o!=O);}}
     
@@ -721,7 +747,8 @@ if (mode==1&&!won&&deathTimer==0) {
     for(let i=0;i<switches.length;i++) {
         let O=switches[i];
         let canBe=objCuld.some(o=>(o.id==68||o.id==56||o.id<=12&&o.id>=11||o.id>=1000||o.id>=63&&o.id<=64)&&o.c!=0&&O.x<o.x+s*o.c&&O.x+s*O.i>o.x&&O.y<o.y+o.c*s&&O.y+s*O.i>o.y);
-        if ((O.x<p.x+s*p.w&&O.x+s*O.i>p.x&&O.y<p.y+p.h*s&&O.y+s*O.i>p.y)||canBe) {
+        let playerOn=some(players,pl=>O.x<pl.x+s*pl.w&&O.x+s*O.i>pl.x&&O.y<pl.y+pl.h*s&&O.y+s*O.i>pl.y);
+        if (playerOn||canBe) {
             O.s=O.s-O.s%2+1;
         } else {O.s=O.s-O.s%2;}}
     
@@ -741,11 +768,13 @@ if (mode==1&&!won&&deathTimer==0) {
         } else O.s=O.s-O.s%2+1-channels[Math.floor(O.s/4)-1];
         if (O.id==67) O.c=Math.abs(O.s%2-1)*O.i;}
 
-    //Keys
-    if(some(objCuld,o=>(o.id==60)&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&o.y<p.y+p.h*s&&o.y+s*o.i>p.y)) {
-        let collected0=objects.length;
-        objects=filter(objects,o=>!((o.id==60)&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&o.y<p.y+p.h*s&&o.y+s*o.i>p.y));
-        p.keys+=(collected0-objects.length);}
+    //Keys - check all players
+    players.forEach(player => {
+        if(some(objCuld,o=>(o.id==60)&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y)) {
+            let collected0=objects.length;
+            objects=filter(objects,o=>!((o.id==60)&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y));
+            player.keys+=(collected0-objects.length);}
+    });
     
     //coins and powerups for all players
     players.forEach(player => {
@@ -777,29 +806,40 @@ if (mode==1&&!won&&deathTimer==0) {
         p.keys = players[0].keys;
     }
     
-    //portals
-    cI=objCuld.findIndex(o=>o.id==59&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&o.y<p.y+p.h*s&&o.y+s*o.i>p.y);
-    if (cI>-1) {if (portalCooldown==0){
-        cI2=objCuld.findIndex(o=>o.id==59&&objCuld[cI].s-objCuld[cI].s%4==o.s-o.s%4&&objCuld[cI]!=o);
-        if (cI2>-1) {
-            p.x=objCuld[cI2].x+objCuld[cI2].i*s/2-p.w*s/2;
-            p.y=objCuld[cI2].y+objCuld[cI2].i*s/2-p.h*s/2;
-            p.vx=0;p.vy=0;
-            c.x=-Math.max(c.xMin,Math.min(c.xMax,p.x-s*10*12));
-            c.y=-Math.max(c.yMin,Math.min(c.yMax,p.y-s*10*8));
-            portalCooldown=100;}} else portalCooldown-=1;
-    } else portalCooldown=0;
+    //portals - check each player
+    players.forEach(player => {
+        cI=objCuld.findIndex(o=>o.id==59&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y);
+        if (cI>-1) {if (player.portalCooldown==0){
+            cI2=objCuld.findIndex(o=>o.id==59&&objCuld[cI].s-objCuld[cI].s%4==o.s-o.s%4&&objCuld[cI]!=o);
+            if (cI2>-1) {
+                player.x=objCuld[cI2].x+objCuld[cI2].i*s/2-player.w*s/2;
+                player.y=objCuld[cI2].y+objCuld[cI2].i*s/2-player.h*s/2;
+                player.vx=0;player.vy=0;
+                player.portalCooldown=100;}} else player.portalCooldown-=1;
+        } else player.portalCooldown=0;
+    });
+    // Update camera to first player
+    if (players.length > 0) {
+        c.x=-Math.max(c.xMin,Math.min(c.xMax,players[0].x-s*10*12));
+        c.y=-Math.max(c.yMin,Math.min(c.yMax,players[0].y-s*10*8));
+    }
     
     
-    //checkpoint
-    cI=objCuld.findIndex(o=>o.id==51&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&o.y<p.y+p.h*s&&o.y+s*o.i>p.y&&o.s%2==0);
-    if(cI>-1) {
-        objects.forEach(o=>{if (o.id==51&&o.s%2==1)o.s-=1;});
-        objCuld[cI].s+=1;}
-        //Fix to implement culling
+    //checkpoint - each player checks independently
+    players.forEach(player => {
+        cI=objCuld.findIndex(o=>o.id==51&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y&&o.s%2==0);
+        if(cI>-1) {
+            // Mark this checkpoint as activated for THIS player
+            if (!player.checkpoint) player.checkpoint = objCuld[cI];
+            player.checkpoint = objCuld[cI];
+            player.startX = objCuld[cI].x + objCuld[cI].i * s / 2 - player.w * s / 2;
+            player.startY = objCuld[cI].y + objCuld[cI].i * s / 2 - player.h * s / 2;
+            objCuld[cI].s = objCuld[cI].s - objCuld[cI].s%2 + 1; // Activate visually
+        }
+    });
 
-    //win
-    if(some(objCuld,o=>o.id==53&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&o.y<p.y+p.h*s&&o.y+s*o.i>p.y)) {
+    //win - any player can win
+    if(some(players,pl=>some(objCuld,o=>o.id==53&&o.x<pl.x+s*pl.w&&o.x+s*o.i>pl.x&&o.y<pl.y+pl.h*s&&o.y+s*o.i>pl.y))) {
         won=true;
     
     //death - check all players
