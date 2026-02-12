@@ -747,11 +747,35 @@ if (mode==1&&!won&&deathTimer==0) {
         objects=filter(objects,o=>!((o.id==60)&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&o.y<p.y+p.h*s&&o.y+s*o.i>p.y));
         p.keys+=(collected0-objects.length);}
     
-    //coins
-    if(some(objCuld,o=>(o.id==10||o.id==57)&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&o.y<p.y+p.h*s&&o.y+s*o.i>p.y)) {
-        let collected0=objects.length;
-        objects=filter(objects,o=>!((o.id==10||o.id==57)&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&o.y<p.y+p.h*s&&o.y+s*o.i>p.y));
-        p.coins+=(collected0-objects.length);}
+    //coins and powerups for all players
+    players.forEach(player => {
+        // Update player power up timers
+        player.update();
+        
+        // Coins
+        if(some(objCuld,o=>(o.id==10||o.id==57)&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y)) {
+            let collected0=objects.length;
+            objects=filter(objects,o=>!((o.id==10||o.id==57)&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y));
+            player.coins+=(collected0-objects.length);}
+        
+        // Invincibility powerup (star - id 3)
+        if(some(objCuld,o=>o.id==3&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y)) {
+            objects=filter(objects,o=>!(o.id==3&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y));
+            player.invincible = true;
+            player.invincibleTimer = 300; // 5 seconds of invincibility
+        }
+        
+        // Second life powerup (mushroom - id 4)
+        if(some(objCuld,o=>o.id==4&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y)) {
+            objects=filter(objects,o=>!(o.id==4&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y));
+            player.powered = true;
+        }
+    });
+    // Update legacy p reference
+    if (players.length > 0) {
+        p.coins = players[0].coins;
+        p.keys = players[0].keys;
+    }
     
     //portals
     cI=objCuld.findIndex(o=>o.id==59&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&o.y<p.y+p.h*s&&o.y+s*o.i>p.y);
@@ -778,9 +802,19 @@ if (mode==1&&!won&&deathTimer==0) {
     if(some(objCuld,o=>o.id==53&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&o.y<p.y+p.h*s&&o.y+s*o.i>p.y)) {
         won=true;
     
-    //death
-    } else if (p.x<c.xMin-p.w*s||p.x>s*10*24+c.xMax||p.y>s*10*16+c.yMax
-        ||some(objCuld,o=>(o.id==11||o.id==12||o.id==26||o.id==62||o.id==63||o.id==64||o.id==65)&&o.x-s<p.x+s*p.w&&o.x-s+s*o.i>p.x&&o.y-s<p.y+p.h*s&&o.y-s+s*o.i>p.y)) {deathTimer=1;}
+    //death - check all players
+    } else {
+        for(let i=0;i<players.length;i++) {
+            let player = players[i];
+            if (player.x<c.xMin-player.w*s||player.x>s*10*24+c.xMax||player.y>s*10*16+c.yMax
+                ||some(objCuld,o=>(o.id==11||o.id==12||o.id==26||o.id==62||o.id==63||o.id==64||o.id==65)&&o.x-s<player.x+s*player.w&&o.x-s+s*o.i>player.x&&o.y-s<player.y+player.h*s&&o.y-s+s*o.i>player.y)) {
+                if (player.takeDamage()) {
+                    deathTimer=1;
+                    break;
+                }
+            }
+        }
+    }
 
 } else if (mode==0) {
     if (keyWPressed||keyUpPressed) c.y+=3*s*c.z;
@@ -836,8 +870,11 @@ for (let l = 0; l < 100; l++) {
 
 //draw player and others
 if (mode==1) { 
-    ctx.fillStyle="rgb(255,0,0)";
-    ctx.fillRect(p.x+c.x,p.y+c.y,s*p.w,s*p.h);
+    // Draw all players
+    players.forEach(player => {
+        player.draw(ctx, c, s);
+    });
+    
     for (let i=0;i<others.length;i++){
         let O=others[i];
         if (O.id==69.1) {drawRect(O.x,O.y,O.i/8*6*s,O.i/8*2*s,"255,41,74");continue;}
