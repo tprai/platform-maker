@@ -178,9 +178,7 @@ function drawObj(o,transform=0) {
         drawRect(o.x+s,o.y+s,s*8*o.i/10,s*8*o.i/10,"150,150,150");return;}
     if (o.id==2)  {drawAutoTile(o,orangeBricks);return;}
     if (o.id==2.5)  {ctx.drawImage(orangeBricks,0*16,3*16,16,16,o.x+c.x,o.y+c.y,o.i*s,o.i*s);return;}
-    if (o.id==3) {ctx.drawImage(mario,3*16,0*16,16,16,o.x+c.x,o.y+c.y,o.i*s,o.i*s);return;} // Invincibility powerup (star)
-    if (o.id==4) {ctx.drawImage(mario,0*16,0*16,16,16,o.x+c.x,o.y+c.y,o.i*s,o.i*s);return;} // Second life powerup (mushroom)
-    if (o.id>=5&&o.id<=9) {ctx.drawImage(mario,(o.id-3)*16,0,16,16,o.x+c.x,o.y+c.y,o.i*s,o.i*s);return;}
+    if (o.id>=3&&o.id<=9) {ctx.drawImage(mario,(o.id-3)*16,0,16,16,o.x+c.x,o.y+c.y,o.i*s,o.i*s);return;}
     if (o.id==10) {ctx.drawImage(marioCoin,Math.max(0,Math.floor(-1.5*Math.cos(Math.PI*fCT/22)+0.9))*16,0*16,16,16,o.x+c.x,o.y+c.y,o.i*s,o.i*s);return;}
     if (o.id==11) {ctx.drawImage(marioEnemies,Math.floor(fCT%20/10)*16,0*16,16,16,o.x+c.x-transform*s,o.y+c.y-transform*s*2+o.i*s*0.15,o.i*s,o.i*s*0.85);return;}
     if (o.id==12) {ctx.drawImage(marioEnemies,Math.floor(fCT%20/10)*16,1*16+Math.floor(o.s%4/2)*24,16,24,o.x+c.x-transform*s,o.y+c.y-transform*s*2-o.i*s*0.2,o.i*s,o.i*s*1.2);return;}
@@ -207,10 +205,6 @@ function respawn() {
     p.y=p.startY;
     p.vx=0;
     p.vy=0;
-    p.invincible=false;
-    p.invincibleTimer=0;
-    p.powered=false;
-    p.h=8; // Reset height to base
     jump=false;
     c.x=-Math.max(c.xMin,Math.min(c.xMax,p.x-s*10*12));
     c.y=-Math.max(c.yMin,Math.min(c.yMax,p.y-s*10*8));
@@ -364,7 +358,7 @@ let noEditLevel=false;
 let mode=1;
 let screenHeightBlocks=16;//blocks (10px) that fit height of canvas
 let s=canvas.height/screenHeightBlocks/10;//size of one pixel
-let p={x:0,y:0,vx:2,vy:0,vMax:1.5,jumpPower:4,w:6,h:8,coins:0,startX:0,startY:0,keys:0,invincible:false,invincibleTimer:0,powered:false};
+let p={x:0,y:0,vx:2,vy:0,vMax:1.5,jumpPower:4,w:6,h:8,coins:0,startX:0,startY:0,keys:0};
 let c={x:0,y:0,xMin:0,xMax:0,yMin:0,yMax:0,vx:0,vy:0,z:1};//camera pos
 let deathTimer=0;
 let portalCooldown=0;
@@ -672,33 +666,6 @@ if (mode==1&&!won&&deathTimer==0) {
         objects=filter(objects,o=>!((o.id==10||o.id==57)&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&o.y<p.y+p.h*s&&o.y+s*o.i>p.y));
         p.coins+=(collected0-objects.length);}
     
-    //powerups
-    // Invincibility powerup (star - id 3)
-    if(some(objCuld,o=>o.id==3&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&o.y<p.y+p.h*s&&o.y+s*o.i>p.y)) {
-        objects=filter(objects,o=>!(o.id==3&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&o.y<p.y+p.h*s&&o.y+s*o.i>p.y));
-        p.invincible = true;
-        p.invincibleTimer = 300; // 5 seconds of invincibility
-    }
-    
-    // Second life powerup (mushroom - id 4)
-    if(some(objCuld,o=>o.id==4&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&o.y<p.y+p.h*s&&o.y+s*o.i>p.y)) {
-        objects=filter(objects,o=>!(o.id==4&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&o.y<p.y+p.h*s&&o.y+s*o.i>p.y));
-        if (!p.powered) {
-            let oldHeight = p.h;
-            p.h = 10; // Grow to 10 blocks high
-            p.y -= (p.h - oldHeight) * s; // Move up by growth amount
-            p.powered = true;
-        }
-    }
-    
-    // Update powerup timers
-    if (p.invincibleTimer > 0) {
-        p.invincibleTimer--;
-        if (p.invincibleTimer <= 0) {
-            p.invincible = false;
-        }
-    }
-    
     //portals
     cI=objCuld.findIndex(o=>o.id==59&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&o.y<p.y+p.h*s&&o.y+s*o.i>p.y);
     if (cI>-1) {if (portalCooldown==0){
@@ -726,21 +693,7 @@ if (mode==1&&!won&&deathTimer==0) {
     
     //death
     } else if (p.x<c.xMin-p.w*s||p.x>s*10*24+c.xMax||p.y>s*10*16+c.yMax
-        ||some(objCuld,o=>(o.id==11||o.id==12||o.id==26||o.id==62||o.id==63||o.id==64||o.id==65)&&o.x-s<p.x+s*p.w&&o.x-s+s*o.i>p.x&&o.y-s<p.y+p.h*s&&o.y-s+s*o.i>p.y)) {
-        // Handle damage with powerup protection
-        if (p.invincible) {
-            // Invincible - no damage
-        } else if (p.powered) {
-            // Powered - lose power and get brief invincibility
-            p.powered = false;
-            p.h = 8; // Shrink back to base size
-            p.invincible = true;
-            p.invincibleTimer = 120; // 2 seconds of invincibility after hit
-        } else {
-            // Normal - die
-            deathTimer=1;
-        }
-    }
+        ||some(objCuld,o=>(o.id==11||o.id==12||o.id==26||o.id==62||o.id==63||o.id==64||o.id==65)&&o.x-s<p.x+s*p.w&&o.x-s+s*o.i>p.x&&o.y-s<p.y+p.h*s&&o.y-s+s*o.i>p.y)) {deathTimer=1;}
 
 } else if (mode==0) {
     if (keyWPressed||keyUpPressed) c.y+=3*s*c.z;
@@ -795,13 +748,8 @@ for (let l = 0; l < 100; l++) {
 
 
 //draw player and others
-if (mode==1) {
-    // Draw player with powerup visual effects
-    if (p.invincible && Math.floor(fCT / 4) % 2 === 0) {
-        ctx.fillStyle = "rgba(255,0,0,0.5)"; // Flashing when invincible
-    } else {
-        ctx.fillStyle = p.powered ? "rgb(255,100,0)" : "rgb(255,0,0)"; // Orange when powered, red normally
-    }
+if (mode==1) { 
+    ctx.fillStyle="rgb(255,0,0)";
     ctx.fillRect(p.x+c.x,p.y+c.y,s*p.w,s*p.h);
     for (let i=0;i<others.length;i++){
         let O=others[i];
