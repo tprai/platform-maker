@@ -171,7 +171,6 @@ function drawRect(x,y,w,h,C){
     ctx.fillStyle="rgb("+C+")";
     ctx.fillRect(x+c.x,y+c.y,w,h);}
 function drawObj(o,transform=0) {
-    if (o.id==9999) return; // Don't render hitboxes
     if (o.id==0) {
         drawRect(o.x,o.y,s*o.i,s*o.i,"0,0,0");return;}
     if (o.id==1) {
@@ -203,99 +202,44 @@ function respawn() {
     unWin();
     mode=1;
     deathTimer=0;
-    
-    // Remove old hitboxes
-    objects = objects.filter(o => o.id !== 9999);
-    
-    // Find all spawn blocks
-    let spawnBlocks = objects.filter(o => o.id == 25);
-    
-    // Clear existing players
-    players = [];
-    
-    if (spawnBlocks.length > 0) {
-        // Create a player for each spawn block
-        spawnBlocks.forEach(spawn => {
-            let player = new Player(
-                spawn.x + spawn.i * s / 2 - p.w * s / 2,
-                spawn.y + spawn.i * s / 2 - p.h * s / 2
-            );
-            // Each player remembers their own spawn block
-            player.spawnBlock = spawn;
-            
-            // Create hitbox for this player
-            let hitbox = {
-                x: player.x,
-                y: player.y,
-                id: 9999,
-                c: player.w,
-                h: player.h,
-                i: 1,
-                l: 99,
-                s: 0,
-                d: [0,0,0,0],
-                player: player
-            };
-            player.hitbox = hitbox;
-            objects.push(hitbox);
-            
-            players.push(player);
-        });
-    } else {
-        // Default spawn if no spawn blocks
-        let player = new Player(0, 0);
-        let hitbox = {
-            x: player.x,
-            y: player.y,
-            id: 9999,
-            c: player.w,
-            h: player.h,
-            i: 1,
-            l: 99,
-            s: 0,
-            d: [0,0,0,0],
-            player: player
-        };
-        player.hitbox = hitbox;
-        objects.push(hitbox);
-        players.push(player);
-    }
-    
-    // Set camera to first player
-    if (players.length > 0) {
-        p = players[0]; // Keep p reference for backward compatibility
-        jump = false;
-        c.x = -Math.max(c.xMin, Math.min(c.xMax, players[0].x - s * 10 * 12));
-        c.y = -Math.max(c.yMin, Math.min(c.yMax, players[0].y - s * 10 * 8));
-    }
-    
+    setStartPos();
+    p.x=p.startX;
+    p.y=p.startY;
+    p.vx=0;
+    p.vy=0;
+    p.invincible=false;
+    p.invincibleTimer=0;
+    p.powered=false;
+    p.h=8; // Reset height to base
+    jump=false;
+    c.x=-Math.max(c.xMin,Math.min(c.xMax,p.x-s*10*12));
+    c.y=-Math.max(c.yMin,Math.min(c.yMax,p.y-s*10*8));
     return 1;}
-function collideX(player, o=6.7) {
+function collideX(o=6.7) {
     if (o==6.7) {
-        player.x+=player.vx;
+        p.x+=p.vx;
     } else {
-    if (player.vx>0) {
-        if (player.x+player.w*s+player.vx>o.x) {
-            player.x=o.x-player.w*s;player.vx=0;
-        } else player.x+=player.vx;
+    if (p.vx>0) {
+        if (p.x+p.w*s+p.vx>o.x) {
+            p.x=o.x-p.w*s;p.vx=0;
+        } else p.x+=p.vx;
     } else {
-        if (player.x+player.vx<o.x+o.c*s) {
-            player.x=o.x+o.c*s;player.vx=0;
-        } else player.x+=player.vx;
+        if (p.x+p.vx<o.x+o.c*s) {
+            p.x=o.x+o.c*s;p.vx=0;
+        } else p.x+=p.vx;
     }}}
-function collideY(player, o=6.7) {
+function collideY(o=6.7) {
     if (o==6.7) {
-        player.y+=player.vy;
+        p.y+=p.vy;
     } else {
-    let objHeight = (o.h !== undefined) ? o.h * s : o.c * s;
-    if (player.vy>0) {
-        if (player.y+player.h*s+player.vy>o.y) {
-            player.y=o.y-player.h*s;player.vy=0;player.jump=true;
-        } else {player.y+=player.vy;}
+    if (p.vy>0) {
+        if (p.y+p.h*s+p.vy>o.y) {
+            p.y=o.y-p.h*s;p.vy=0;jump=true;
+        } else {p.y+=p.vy;}
     } else {
-        if (player.y+player.vy<o.y+objHeight) {
-            player.y=o.y+objHeight;player.vy=0;
-        } else {player.y+=player.vy;}
+        if (p.y+p.vy<o.y+o.c*s) {
+            p.y=o.y+o.c*s;p.vy=0;
+        } else {p.y+=p.vy;}
     }}}
 function getCollision(id) {//when placing in  editore
     if (editCollision==0) return 0;
@@ -415,91 +359,12 @@ function setStartPos() {
            p.startX=objects[sPI].x+objects[sPI].i/2*s-s*p.w/2;
         p.startY=objects[sPI].y+objects[sPI].i/2*s-s*p.h/2;} else {p.startX=0;p.startY=0;}}
 }    
-// Player Class
-class Player {
-    constructor(x=0, y=0) {
-        this.x = x;
-        this.y = y;
-        this.vx = 2;
-        this.vy = 0;
-        this.vMax = p.vMax;
-        this.jumpPower = p.jumpPower;
-        this.w = p.w;
-        this.h = p.h;
-        this.coins = 0;
-        this.startX = x;
-        this.startY = y;
-        this.keys = 0;
-        this.jump = false;
-        this.deathTimer = 0;
-        this.portalCooldown = 0;
-        this.invincible = false;
-        this.invincibleTimer = 0;
-        this.powered = false; // second life powerup (like Super Mario)
-        this.checkpoint = null; // Individual checkpoint
-        this.spawnBlock = null; // Remember spawn block
-        this.hitbox = null; // Reference to hitbox object
-    }
-    
-    respawnPlayer() {
-        // Respawn this player at their checkpoint or spawn point
-        if (this.checkpoint) {
-            this.x = this.checkpoint.x + this.checkpoint.i * s / 2 - this.w * s / 2;
-            this.y = this.checkpoint.y + this.checkpoint.i * s / 2 - this.h * s / 2;
-        } else if (this.spawnBlock) {
-            this.x = this.spawnBlock.x + this.spawnBlock.i * s / 2 - this.w * s / 2;
-            this.y = this.spawnBlock.y + this.spawnBlock.i * s / 2 - this.h * s / 2;
-        } else {
-            this.x = this.startX;
-            this.y = this.startY;
-        }
-        this.vx = 0;
-        this.vy = 0;
-        this.deathTimer = 0;
-        this.invincible = false;
-        this.invincibleTimer = 0;
-        this.powered = false;
-        this.h = p.h; // Reset to base height
-    }
-    
-    takeDamage() {
-        if (this.invincible) return false;
-        if (this.powered) {
-            this.powered = false;
-            this.h = p.h; // Shrink back to base size
-            this.invincible = true;
-            this.invincibleTimer = 120; // 2 seconds of invincibility
-            return false;
-        }
-        return true; // player dies
-    }
-    
-    update() {
-        if (this.invincibleTimer > 0) {
-            this.invincibleTimer--;
-            if (this.invincibleTimer <= 0) {
-                this.invincible = false;
-            }
-        }
-    }
-    
-    draw(ctx, c, s) {
-        if (this.invincible && Math.floor(fCT / 4) % 2 === 0) {
-            ctx.fillStyle = "rgba(255,0,0,0.5)";
-        } else {
-            ctx.fillStyle = this.powered ? "rgb(255,100,0)" : "rgb(255,0,0)";
-        }
-        ctx.fillRect(this.x + c.x, this.y + c.y, s * this.w, s * (this.powered ? this.h * 1.2 : this.h));
-    }
-}
-
 let won=false;
 let noEditLevel=false;
 let mode=1;
 let screenHeightBlocks=16;//blocks (10px) that fit height of canvas
 let s=canvas.height/screenHeightBlocks/10;//size of one pixel
-let p={x:0,y:0,vx:2,vy:0,vMax:1.5,jumpPower:4,w:6,h:8,coins:0,startX:0,startY:0,keys:0}; // Keep for backward compatibility
-let players = []; // Array to hold all player instances
+let p={x:0,y:0,vx:2,vy:0,vMax:1.5,jumpPower:4,w:6,h:8,coins:0,startX:0,startY:0,keys:0,invincible:false,invincibleTimer:0,powered:false};
 let c={x:0,y:0,xMin:0,xMax:0,yMin:0,yMax:0,vx:0,vy:0,z:1};//camera pos
 let deathTimer=0;
 let portalCooldown=0;
@@ -712,86 +577,55 @@ if (mode==1&&!won&&deathTimer==0) {
             others=filter(others,o=>o!=O);}}
     
     
-    // Update hitboxes to follow players
-    players.forEach(player => {
-        if (player.hitbox) {
-            player.hitbox.x = player.x;
-            player.hitbox.y = player.y;
-            player.hitbox.c = player.w;
-            player.hitbox.h = player.h;
-        }
-    });
+    //movement input
+    if (keyAPressed||keyLeftPressed){
+        p.vx=Math.max(-p.vMax*s,Math.min(-s,p.vx-s));
+    } else if (keyDPressed||keyRightPressed){
+        p.vx=Math.min(p.vMax*s,Math.max(s,p.vx+s));
+    } else p.vx=0;
+    if (jump&&(keyWPressed||keyUpPressed||keySpacePressed)) {
+        p.vy=-s*p.jumpPower;
+    }
+    jump=false;
     
-    // Process each player independently
-    players.forEach(player => {
-        //movement input
-        if (keyAPressed||keyLeftPressed){
-            player.vx=Math.max(-player.vMax*s,Math.min(-s,player.vx-s));
-        } else if (keyDPressed||keyRightPressed){
-            player.vx=Math.min(player.vMax*s,Math.max(s,player.vx+s));
-        } else player.vx=0;
-        if (player.jump&&(keyWPressed||keyUpPressed||keySpacePressed)) {
-            player.vy=-s*player.jumpPower;
-            player.jump=false; // Consume jump immediately
+    //spring
+    if (some(objCuld,o=>o.id==58&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&p.y+p.h*s==o.y)) p.vy=-s*6;
+    if (some(objCuld,o=>o.id==58&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&p.y==o.y+o.i*s)) p.vy=s*2;
+    
+    //player collisions. collidable=if within player velocities and if not overlapping with player
+    let collidable=filter(objCuld,o=>o.c!=0&&o.x<p.x+s*p.w+Math.max(p.vx,0)&&o.x+o.c*s>p.x+Math.min(p.vx,0)&&o.y<p.y+s*p.h+Math.max(p.vy,0)&&o.y+o.c*s>p.y+Math.min(p.vy,0)&&!(o.x+o.c*s>p.x&&o.x<p.x+p.w*s&&o.y+o.c*s>p.y&&o.y<p.y+p.h*s));
+    let yC=filter(collidable,o=>o.x+o.c*s>p.x&&o.x<p.x+p.w*s).sort((a,b)=>-(b.y-a.y))[0];
+    let xC=filter(collidable,o=>o.y+o.c*s>p.y&&o.y<p.y+p.h*s).sort((a,b)=>-(b.x-a.x))[0];
+    if (collidable.length>0&&!xC&&!yC) {
+        p.x+=p.vx;
+        yC=filter(collidable,o=>o.x+o.c*s>p.x&&o.x<p.x+p.w*s).sort((a,b)=>-(b.y-a.y))[0];
+        collideY(yC);
+    } else if (yC) {
+        collideY(yC);
+        xC=filter(collidable,o=>o.y+o.c*s>p.y&&o.y<p.y+p.h*s).sort((a,b)=>-(b.x-a.x))[0];
+        collideX(xC);
+    } else if (xC) {
+        collideX(xC);
+        yC=filter(collidable,o=>o.x+o.c*s>p.x&&o.x<p.x+p.w*s).sort((a,b)=>-(b.y-a.y))[0];
+        collideY(yC);
+    } else {
+        p.x+=p.vx;
+        p.y+=p.vy;}
+    p.vy=Math.min(p.vy+s/4,s*10);//gravity
+
+    //stomp on enemies
+    let stompedEnemies=filter(objCuld,o=>(o.id==11||o.id==12||o.id==63||o.id==64||o.id==65)&&o.x<p.x+p.w*s+s&&o.x+o.c*s-s>p.x&&p.y+p.h*s>=o.y-s&&p.y+p.h*s<=o.y);
+    for(let i=0;i<stompedEnemies.length;i++) {
+        let O=stompedEnemies[i];
+        if (O.id==11||O.id==12){
+            var O2={...O};
+            O2.id*=100;O2.c=(O.id==11)?0:O2.c/2;O2.s=0;
+            if (O.id==12) {O2.x+=2*s;O2.y+=3*s;}
+            objects.push(O2);
         }
-        
-        //spring
-        if (some(objCuld,o=>o.id==58&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&player.y+player.h*s==o.y)) player.vy=-s*6;
-        if (some(objCuld,o=>o.id==58&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&player.y==o.y+o.i*s)) player.vy=s*2;
-        
-        //player collisions. collidable=if within player velocities and if not overlapping with player
-        let collidable=filter(objCuld,o=>{
-            // Skip this player's own hitbox AND other player hitboxes for now (handled separately below)
-            if (o.id === 9999) return false;
-            let objHeight = (o.h !== undefined) ? o.h * s : o.c * s;
-            return o.c!=0&&o.x<player.x+s*player.w+Math.max(player.vx,0)&&o.x+o.c*s>player.x+Math.min(player.vx,0)&&o.y<player.y+s*player.h+Math.max(player.vy,0)&&o.y+objHeight>player.y+Math.min(player.vy,0)&&!(o.x+o.c*s>player.x&&o.x<player.x+player.w*s&&o.y+objHeight>player.y&&o.y<player.y+player.h*s);
-        });
-        
-        // Add other players' hitboxes for player-to-player collision
-        let otherPlayerHitboxes = filter(objCuld, o => {
-            if (o.id !== 9999 || !o.player || o.player === player) return false;
-            let objHeight = (o.h !== undefined) ? o.h * s : o.c * s;
-            // Check if hitbox is within collision range and not deeply overlapping (80% threshold)
-            let overlapX = Math.min(player.x + player.w * s, o.x + o.c * s) - Math.max(player.x, o.x);
-            let overlapY = Math.min(player.y + player.h * s, o.y + objHeight) - Math.max(player.y, o.y);
-            if (overlapX > player.w * s * 0.8 || overlapY > player.h * s * 0.8) return false; // Skip if deeply overlapping
-            return o.x<player.x+s*player.w+Math.max(player.vx,0)&&o.x+o.c*s>player.x+Math.min(player.vx,0)&&o.y<player.y+s*player.h+Math.max(player.vy,0)&&o.y+objHeight>player.y+Math.min(player.vy,0)&&!(o.x+o.c*s>player.x&&o.x<player.x+player.w*s&&o.y+objHeight>player.y&&o.y<player.y+player.h*s);
-        });
-        collidable = collidable.concat(otherPlayerHitboxes);
-        let yC=filter(collidable,o=>o.x+o.c*s>player.x&&o.x<player.x+player.w*s).sort((a,b)=>-(b.y-a.y))[0];
-        let xC=filter(collidable,o=>o.y+o.c*s>player.y&&o.y<player.y+player.h*s).sort((a,b)=>-(b.x-a.x))[0];
-        if (collidable.length>0&&!xC&&!yC) {
-            player.x+=player.vx;
-            yC=filter(collidable,o=>o.x+o.c*s>player.x&&o.x<player.x+player.w*s).sort((a,b)=>-(b.y-a.y))[0];
-            collideY(player,yC);
-        } else if (yC) {
-            collideY(player,yC);
-            xC=filter(collidable,o=>o.y+o.c*s>player.y&&o.y<player.y+player.h*s).sort((a,b)=>-(b.x-a.x))[0];
-            collideX(player,xC);
-        } else if (xC) {
-            collideX(player,xC);
-            yC=filter(collidable,o=>o.x+o.c*s>player.x&&o.x<player.x+player.w*s).sort((a,b)=>-(b.y-a.y))[0];
-            collideY(player,yC);
-        } else {
-            player.x+=player.vx;
-            player.y+=player.vy;}
-        player.vy=Math.min(player.vy+s/4,s*10);//gravity
-        
-        // Stomp on enemies (per-player)
-        let stompedEnemies=filter(objCuld,o=>(o.id==11||o.id==12||o.id==63||o.id==64||o.id==65)&&o.x<player.x+player.w*s+s&&o.x+o.c*s-s>player.x&&player.y+player.h*s>=o.y-s&&player.y+player.h*s<=o.y);
-        for(let i=0;i<stompedEnemies.length;i++) {
-            let O=stompedEnemies[i];
-            if (O.id==11||O.id==12){
-                var O2={...O};
-                O2.id*=100;O2.c=(O.id==11)?0:O2.c/2;O2.s=0;
-                if (O.id==12) {O2.x+=2*s;O2.y+=3*s;}
-                objects.push(O2);
-            }
-            objects=filter(objects,o=>o!=O);
-            objCuld=filter(objCuld,o=>o!=O);
-            player.vy=-s*3;
-        }
-    });
+        objects=filter(objects,o=>o!=O);
+        objCuld=filter(objCuld,o=>o!=O);
+        p.vy=-s*3;}
 
     //Breakable Blocks
     let breakableObjs=filter(objCuld,o=>o.d[0]==1)
@@ -832,87 +666,79 @@ if (mode==1&&!won&&deathTimer==0) {
         objects=filter(objects,o=>!((o.id==60)&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&o.y<p.y+p.h*s&&o.y+s*o.i>p.y));
         p.keys+=(collected0-objects.length);}
     
-    //coins and powerups for all players
-    players.forEach(player => {
-        // Update player power up timers
-        player.update();
-        
-        // Coins
-        if(some(objCuld,o=>(o.id==10||o.id==57)&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y)) {
-            let collected0=objects.length;
-            objects=filter(objects,o=>!((o.id==10||o.id==57)&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y));
-            player.coins+=(collected0-objects.length);}
-        
-        // Invincibility powerup (star - id 3)
-        if(some(objCuld,o=>o.id==3&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y)) {
-            objects=filter(objects,o=>!(o.id==3&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y));
-            player.invincible = true;
-            player.invincibleTimer = 300; // 5 seconds of invincibility
-        }
-        
-        // Second life powerup (mushroom - id 4)
-        if(some(objCuld,o=>o.id==4&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y)) {
-            objects=filter(objects,o=>!(o.id==4&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y));
-            if (!player.powered) {
-                // Grow player height and move up to prevent clipping into ground
-                let oldHeight = player.h;
-                player.h = p.h + 2; // Grow by 2 blocks from base
-                player.y -= (player.h - oldHeight) * s; // Move up by the growth amount
-                player.powered = true;
-            }
-        }
-    });
-    // Update legacy p reference
-    if (players.length > 0) {
-        p.coins = players[0].coins;
-        p.keys = players[0].keys;
+    //coins
+    if(some(objCuld,o=>(o.id==10||o.id==57)&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&o.y<p.y+p.h*s&&o.y+s*o.i>p.y)) {
+        let collected0=objects.length;
+        objects=filter(objects,o=>!((o.id==10||o.id==57)&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&o.y<p.y+p.h*s&&o.y+s*o.i>p.y));
+        p.coins+=(collected0-objects.length);}
+    
+    //powerups
+    // Invincibility powerup (star - id 3)
+    if(some(objCuld,o=>o.id==3&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&o.y<p.y+p.h*s&&o.y+s*o.i>p.y)) {
+        objects=filter(objects,o=>!(o.id==3&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&o.y<p.y+p.h*s&&o.y+s*o.i>p.y));
+        p.invincible = true;
+        p.invincibleTimer = 300; // 5 seconds of invincibility
     }
     
-    // Portals (per-player)
-    players.forEach(player => {
-        if (player.portalCooldown > 0) {
-            player.portalCooldown -= 1;
-            return;
+    // Second life powerup (mushroom - id 4)
+    if(some(objCuld,o=>o.id==4&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&o.y<p.y+p.h*s&&o.y+s*o.i>p.y)) {
+        objects=filter(objects,o=>!(o.id==4&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&o.y<p.y+p.h*s&&o.y+s*o.i>p.y));
+        if (!p.powered) {
+            let oldHeight = p.h;
+            p.h = 10; // Grow to 10 blocks high
+            p.y -= (p.h - oldHeight) * s; // Move up by growth amount
+            p.powered = true;
         }
-        
-        let cI = objCuld.findIndex(o=>o.id==59&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y);
-        if (cI > -1) {
-            let cI2 = objCuld.findIndex(o=>o.id==59&&objCuld[cI].s-objCuld[cI].s%4==o.s-o.s%4&&objCuld[cI]!=o);
-            if (cI2 > -1) {
-                player.x = objCuld[cI2].x+objCuld[cI2].i*s/2-player.w*s/2;
-                player.y = objCuld[cI2].y+objCuld[cI2].i*s/2-player.h*s/2;
-                player.vx = 0;
-                player.vy = 0;
-                player.portalCooldown = 100;
-            }
+    }
+    
+    // Update powerup timers
+    if (p.invincibleTimer > 0) {
+        p.invincibleTimer--;
+        if (p.invincibleTimer <= 0) {
+            p.invincible = false;
         }
-    });
+    }
+    
+    //portals
+    cI=objCuld.findIndex(o=>o.id==59&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&o.y<p.y+p.h*s&&o.y+s*o.i>p.y);
+    if (cI>-1) {if (portalCooldown==0){
+        cI2=objCuld.findIndex(o=>o.id==59&&objCuld[cI].s-objCuld[cI].s%4==o.s-o.s%4&&objCuld[cI]!=o);
+        if (cI2>-1) {
+            p.x=objCuld[cI2].x+objCuld[cI2].i*s/2-p.w*s/2;
+            p.y=objCuld[cI2].y+objCuld[cI2].i*s/2-p.h*s/2;
+            p.vx=0;p.vy=0;
+            c.x=-Math.max(c.xMin,Math.min(c.xMax,p.x-s*10*12));
+            c.y=-Math.max(c.yMin,Math.min(c.yMax,p.y-s*10*8));
+            portalCooldown=100;}} else portalCooldown-=1;
+    } else portalCooldown=0;
     
     
-    // Checkpoints (per-player)
-    players.forEach(player => {
-        let cI = objCuld.findIndex(o=>o.id==51&&o.x<player.x+s*player.w&&o.x+s*o.i>player.x&&o.y<player.y+player.h*s&&o.y+s*o.i>player.y&&o.s%2==0);
-        if(cI > -1) {
-            player.checkpoint = objCuld[cI];
-            objCuld[cI].s += 1;
-        }
-    });
+    //checkpoint
+    cI=objCuld.findIndex(o=>o.id==51&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&o.y<p.y+p.h*s&&o.y+s*o.i>p.y&&o.s%2==0);
+    if(cI>-1) {
+        objects.forEach(o=>{if (o.id==51&&o.s%2==1)o.s-=1;});
+        objCuld[cI].s+=1;}
+        //Fix to implement culling
 
     //win
     if(some(objCuld,o=>o.id==53&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&o.y<p.y+p.h*s&&o.y+s*o.i>p.y)) {
         won=true;
     
-    //death - check all players
-    } else {
-        for(let i=0;i<players.length;i++) {
-            let player = players[i];
-            if (player.x<c.xMin-player.w*s||player.x>s*10*24+c.xMax||player.y>s*10*16+c.yMax
-                ||some(objCuld,o=>(o.id==11||o.id==12||o.id==26||o.id==62||o.id==63||o.id==64||o.id==65)&&o.x-s<player.x+s*player.w&&o.x-s+s*o.i>player.x&&o.y-s<player.y+player.h*s&&o.y-s+s*o.i>player.y)) {
-                if (player.takeDamage()) {
-                    deathTimer=1;
-                    break;
-                }
-            }
+    //death
+    } else if (p.x<c.xMin-p.w*s||p.x>s*10*24+c.xMax||p.y>s*10*16+c.yMax
+        ||some(objCuld,o=>(o.id==11||o.id==12||o.id==26||o.id==62||o.id==63||o.id==64||o.id==65)&&o.x-s<p.x+s*p.w&&o.x-s+s*o.i>p.x&&o.y-s<p.y+p.h*s&&o.y-s+s*o.i>p.y)) {
+        // Handle damage with powerup protection
+        if (p.invincible) {
+            // Invincible - no damage
+        } else if (p.powered) {
+            // Powered - lose power and get brief invincibility
+            p.powered = false;
+            p.h = 8; // Shrink back to base size
+            p.invincible = true;
+            p.invincibleTimer = 120; // 2 seconds of invincibility after hit
+        } else {
+            // Normal - die
+            deathTimer=1;
         }
     }
 
@@ -969,12 +795,14 @@ for (let l = 0; l < 100; l++) {
 
 
 //draw player and others
-if (mode==1) { 
-    // Draw all players
-    players.forEach(player => {
-        player.draw(ctx, c, s);
-    });
-    
+if (mode==1) {
+    // Draw player with powerup visual effects
+    if (p.invincible && Math.floor(fCT / 4) % 2 === 0) {
+        ctx.fillStyle = "rgba(255,0,0,0.5)"; // Flashing when invincible
+    } else {
+        ctx.fillStyle = p.powered ? "rgb(255,100,0)" : "rgb(255,0,0)"; // Orange when powered, red normally
+    }
+    ctx.fillRect(p.x+c.x,p.y+c.y,s*p.w,s*p.h);
     for (let i=0;i<others.length;i++){
         let O=others[i];
         if (O.id==69.1) {drawRect(O.x,O.y,O.i/8*6*s,O.i/8*2*s,"255,41,74");continue;}
