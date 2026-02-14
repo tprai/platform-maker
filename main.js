@@ -130,6 +130,7 @@ window.addEventListener("keydown", (event) => {
     case "f":keyFPressed=true;break;
     case "r":keyRPressed=true;break;
     case "p":keyPPressed=true;break;
+    case "shift":keyShiftPressed=true;break;
     //case "g":keyGPressed=true;break;
     case "shift":keyShiftPressed=true;break;
     //default:console.log(event.key.toLowerCase());
@@ -182,6 +183,8 @@ function drawObj(o,transform=0) {
     if (o.id==10) {ctx.drawImage(marioCoin,Math.max(0,Math.floor(-1.5*Math.cos(Math.PI*fCT/22)+0.9))*16,0*16,16,16,o.x+c.x,o.y+c.y,o.i*s,o.i*s);return;}
     if (o.id==11) {ctx.drawImage(marioEnemies,Math.floor(fCT%20/10)*16,0*16,16,16,o.x+c.x-transform*s,o.y+c.y-transform*s*2+o.i*s*0.15,o.i*s,o.i*s*0.85);return;}
     if (o.id==12) {ctx.drawImage(marioEnemies,Math.floor(fCT%20/10)*16,1*16+Math.floor(o.s%4/2)*24,16,24,o.x+c.x-transform*s,o.y+c.y-transform*s*2-o.i*s*0.2,o.i*s,o.i*s*1.2);return;}
+    if (o.id==13) {drawRect(o.x-transform*s,o.y-transform*s*2,o.i*s,o.i*s,"255,255,100");return;}
+    if (o.id==14) {drawRect(o.x-transform*s,o.y-transform*s*2,o.i*s,o.i*s,"255,150,150");return;}
     if (o.id==25&&mode==0) {ctx.drawImage(startPos,o.x+c.x,o.y+c.y,o.i*s,o.i*s)}
     if (o.id==26&&mode==0) {ctx.drawImage(killBlock,o.x+c.x,o.y+c.y,o.i*s,o.i*s)}
     if (o.id==51) {ctx.drawImage(jerry,(1+o.s%2||1)*16,0*16,16,16,o.x+c.x,o.y+c.y,s*o.i,s*o.i);return;}
@@ -193,16 +196,23 @@ function drawObj(o,transform=0) {
     if (o.id==68) {ctx.drawImage(jerry,((o.s||0)%2)*16,8*16,16,16,o.x+c.x,o.y+c.y,s*o.i,s*o.i);return;}//-(mode*(o.s%2-.5)*(fCT%3)*s||0)smooth movement
     if (o.id==69) {ctx.drawImage(jerryLaser,o.x+c.x,o.y+c.y,s*o.i,s*o.i);return;}
     
-    if (o.id==1100) {ctx.drawImage(marioEnemies,Math.floor(fCT%20/10)*16,0*16,16,16,o.x+c.x-transform*s,o.y+c.y-transform*s*2+o.i*s*0.4,o.i*s,o.i*s*0.6);return;}
-    if (o.id==1200) {ctx.drawImage(marioShell,0,0,16,13,o.x+c.x-transform*s*3,o.y+c.y-transform*s*6+o.i*s*0.2,o.i*s,o.i*s*0.8);return;}
-    return;}
+    if (o.id==1100) {ctx.drawImage(marioDeadEnemies,0,0,16,16,o.x+c.x-transform*s,o.y+c.y-transform*s*2+o.i*s*0.15,o.i*s,o.i*s*0.85);return;}
+    if (o.id==1200) {ctx.drawImage(marioDeadEnemies,16,3,16,13,o.x+c.x-transform*s*3,o.y+c.y-transform*s*6+o.i*s*0.2,o.i*s,o.i*s*0.8);return;}
+    if (o.id==1101) {ctx.drawImage(marioEnemies,0,0*16,16,16,o.x+c.x-transform*s,o.y+c.y-transform*s*2+o.i*s*0.4,o.i*s,o.i*s*0.6);return;}
+    if (o.id==1201) {ctx.drawImage(marioShell,0,0,16,13,o.x+c.x-transform*s*3,o.y+c.y-transform*s*6+o.i*s*0.2,o.i*s,o.i*s*0.8);return;}
+    if (o.id>=6300&&o.id<=6500) {ctx.drawImage(jerry,0*16,(o.id/100-59)*16,16,16,o.x+c.x-transform*s,o.y+c.y-transform*s,s*o.i,s*o.i);return;}
+    if (mode==1)console.log("Image not found with id="+o.id);return;}
 function respawn() {
-    unWin();
     mode=1;
     deathTimer=0;
     setStartPos();
     p.x=p.startX;
     p.y=p.startY;
+    p.super=false;
+    p.jumpPower=p1.jumpPower;
+    p.h=p1.h;
+    p.w=p1.w;
+    p.invincible=0;
     p.vx=0;
     p.vy=0;
     jump=false;
@@ -237,8 +247,8 @@ function collideY(o=6.7) {
     }}}
 function getCollision(id) {//when placing in  editore
     if (editCollision==0) return 0;
+    if (id>=11&&id<=14||id>=62&&id<=65) return Math.max(1,editSize-2);
     if (editCollision==1) return editSize;
-    if (id==11||id==12||id==62||id==63||id==64||id==65) return editSize-2;
     if (id==10||id==25||id==26||id==51||id==52||id==53||id==57||id==59||id==60||id==66) return 0;
     return editSize;}
 function getFromTileset(me) {//b= auto-tile id
@@ -271,16 +281,20 @@ function toEditMode() {
     objects=toObjects(previousObjects[0]); 
     document.getElementById("Mode").innerHTML="Play";
     document.querySelectorAll('.edit').forEach(e=>e.hidden=false);
+    document.getElementById("timer").hidden=true;
     others.length=0;
     let activatedCheckpointIndex=objects.findIndex(o=>o.id==51&&o.s==1);
     if (activatedCheckpointIndex>=0) objects[activatedCheckpointIndex].s=0;
     }}
 function toPlayMode() {
+    fCT=0;
     mode=1;
     respawn();
     document.getElementById("Mode").innerHTML="Edit";
+    document.getElementById("timer").innerHTML="0.00s";
+    document.getElementById("timer").hidden=false;
     document.querySelectorAll('.edit').forEach(e=>e.hidden=true);
-    objects=objects.map(function(o){return {x:(o.id>=11&&o.id<=12||o.id>=62&&o.id<=65)?o.x+s:o.x,y:(o.id>=11&&o.id<=12||o.id>=62&&o.id<=65)?o.y+s:o.y,id:o.id,c:o.c,s:o.s,i:o.i,l:o.l,d:o.d};});
+    objects=objects.map(function(o){return {x:(o.id>=11&&o.id<=14||o.id>=62&&o.id<=65)?o.x+s:o.x,y:(o.id>=11&&o.id<=14||o.id>=62&&o.id<=65)?o.y+s:o.y,id:o.id,c:o.c,s:o.s,i:o.i,l:o.l,d:o.d};});
     c.z=1;
     zoom=16;
     c.xMin=Math.min(0,...objects.map(function(o){return o.x}));
@@ -314,16 +328,16 @@ function saveSettings() {
     let sS="platformMaker";
     sS+="-"+backgroundColor.match(/\d+/g).map(Number).join(",");
     sS+="-"+[p.vMax,p.jumpPower,p.w,p.h].join(",");
-    return sS+"–";
-    }
+    return sS+"–";}
 function loadSettings(S) {
     let lS=S.substring(14,S.indexOf("–"));
     backgroundColor="rgb("+lS.substring(0,lS.indexOf("-"))+")";
     lS=lS.substring(lS.indexOf("-")+1);
-    p.vMax=Number(lS.substring(0,lS.indexOf(",")));lS=lS.substring(lS.indexOf(",")+1);
-    p.jumpPower=Number(lS.substring(0,lS.indexOf(",")));lS=lS.substring(lS.indexOf(",")+1);if (S.substring(1,2)=="I") {noEditLevel=true;toPlayMode();}
-    p.w=Number(lS.substring(0,lS.indexOf(",")));lS=lS.substring(lS.indexOf(",")+1);
-    p.h=Number(lS);
+    p1.vMax=Number(lS.substring(0,lS.indexOf(",")));lS=lS.substring(lS.indexOf(",")+1);
+    p1.jumpPower=Number(lS.substring(0,lS.indexOf(",")));lS=lS.substring(lS.indexOf(",")+1);if (S.substring(1,2)=="I") {noEditLevel=true;toPlayMode();}
+    p1.w=Number(lS.substring(0,lS.indexOf(",")));lS=lS.substring(lS.indexOf(",")+1);
+    p1.h=Number(lS);
+    p={...p1};
     }
 function unWin() {
     document.getElementById("win").hidden=true;
@@ -341,7 +355,17 @@ function unSizedLevel(){
 }
 function sizedLevel(){
     return objects.map(function(o){return {x:o.x*s,y:o.y*s,id:o.id,c:o.c,s:o.s,i:o.i,l:o.l,d:o.d};});
-}           
+}      
+function damagePlayer() {
+    if (p.Super) { 
+        p.h=p1.h;
+        p.w=p1.w;
+        p.jumpPower=p1.jumpPower;
+        p.x+=2*s;
+        p.y+=6*s; 
+        p.Super=false;
+        p.invincible=90;
+    } else deathTimer=1;}
 function setStartPos() {
     cI=objects.findIndex(o=>o.id==51&&o.s%2==1);
     if(cI!=-1) {
@@ -358,12 +382,16 @@ let noEditLevel=false;
 let mode=1;
 let screenHeightBlocks=16;//blocks (10px) that fit height of canvas
 let s=canvas.height/screenHeightBlocks/10;//size of one pixel
-let p={x:0,y:0,vx:2,vy:0,vMax:1.5,jumpPower:4,w:6,h:8,coins:0,startX:0,startY:0,keys:0};
+let p={x:0,y:0,vx:2,vy:0,vMax:1.5,jumpPower:4,w:6,h:8,startX:0,startY:0,invinsible:0,Super:0};
+let p1={...p};
 let c={x:0,y:0,xMin:0,xMax:0,yMin:0,yMax:0,vx:0,vy:0,z:1};//camera pos
+let coins=0;
+let keys=0;
 let deathTimer=0;
+let weapon=1;
+let weaponCooldown=0;
 let portalCooldown=0;
-let jump=false;//if can jump
-let timer=0;
+let jump=false;//if can jumpc
 let channels=[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
 let editObjId=0;//for level editor
 let editCollision=2;//0: forced no, 1: forced yes, 2: auto (getCollision(id))
@@ -455,23 +483,42 @@ ctx.fillRect(0,0,canvas.width,canvas.height);
 var objCuld=filter(objects,o=>o.d[3]==1||o.x>=-c.x-s*20&&o.x<=-c.x+canvas.width+s*10&&o.y>=-c.y-s*20&&o.y<=-c.y+canvas.height+s*30);
     
 if (mode==1&&!won&&deathTimer==0) {
-    if (keyRPressed) respawn();
-
+    if (keyRPressed) {if (keyShiftPressed){toEditMode();toPlayMode();} else respawn();}
+    document.getElementById("timer").innerHTML=(Math.floor(fCT/.6)%10==0)?Math.floor(fCT/.6)/100+"0s":Math.floor(fCT/.6)/100+"s";
+    
     //camera movement
     c.vx=-Math.max(-s*20,Math.min(s*20,Math.floor((-(p.x+10*p.vx-(-c.x+s*10*12))/s/20)**3*10)/20*s));
     c.vy=-Math.max(-s*20,Math.min(s*20,Math.floor((-(p.y+Math.max(p.vy*2,0)-(-c.y+s*10*10))/s/10)**3)/4*s));
     c.x=-Math.max(c.xMin,Math.min(c.xMax,-c.x+c.vx));
     c.y=-Math.max(c.yMin+Math.min(0,(p.y-c.yMax-s*20)/1.5),Math.min(c.yMax,-c.y+c.vy));
     
+    //weapons
+    if (weapon!=0) {
+        if (mouseZ==1||keyShiftPressed) {
+            if (weapon==1&&(weaponCooldown==0||keyShiftPressed)) {
+                let a=(Math.random()-.5)/8+Math.atan2(mouseY-(p.y+c.y+p.h*s/2),mouseX-(p.x+c.x+p.w*s/2));
+                others.push({x:p.x+p.w*s/2+Math.cos(a)*s*(8+Math.random()*3),y:p.y+p.h*s/2+Math.sin(a)*s*(8+Math.random()*3),vx:Math.cos(a)*s*(6+Math.random()),vy:Math.sin(a)*s*(6+Math.random()),id:-1,i:2});
+                weaponCooldown=1;
+            }
+        } else weaponCooldown=0;
+    }
+    let bullets=others.filter(o=>o.id<0);
+    for(let i=0;i<bullets.length;i++) {
+        let O=bullets[i];
+        if (some(objCuld,o=>!(o.id>=11&&o.id<=12||o.id>=63&&o.id<=65||o.id>=1000)&&o.c!=0&&O.x<o.x+s*o.c&&O.y<o.y+o.c*s&&O.x+O.i*s>o.x&&O.y+O.i*s>o.y)||O.x<c.xMin-O.i*s||O.x>s*10*24+c.xMax||O.y>s*10*16+c.yMax||O.y<c.yMin-s*10*6.7){
+            others=filter(others,o=>o!=O);}
+        O.x+=O.vx;O.y+=O.vy;
+        if (p.invincible==0&&O.x<p.x+s*p.w&&O.y<p.y+p.h*s&&O.x+O.i*s>p.x&&O.y+O.i*s>p.y) {others=filter(others,o=>o!=O);damagePlayer();}
+        }
     
     //Lock Detection (occurs before colision)
     let lockeds=filter(objCuld,o=>o.id==61);
     for(let i=0;i<lockeds.length;i++) {
         let O=lockeds[i];
-        if (p.keys>0&&(O.x==p.x+p.w*s&&O.y<p.y+s*p.h&&O.y+s*O.c>p.y||O.x+O.c*s==p.x&&O.y<p.y+s*p.h&&O.y+s*O.c>p.y||O.y==p.y+p.h*s&&O.x<p.x+s*p.w&&O.x+s*O.c>p.x||O.y+O.c*s==p.y&&O.x<p.x+s*p.w&&O.x+s*O.c>p.x)) {
+        if (keys>0&&(O.x==p.x+p.w*s&&O.y<p.y+s*p.h&&O.y+s*O.c>p.y||O.x+O.c*s==p.x&&O.y<p.y+s*p.h&&O.y+s*O.c>p.y||O.y==p.y+p.h*s&&O.x<p.x+s*p.w&&O.x+s*O.c>p.x||O.y+O.c*s==p.y&&O.x<p.x+s*p.w&&O.x+s*O.c>p.x)) {
             objects=filter(objects,o=>o!=O);
             objCuld=filter(objCuld,o=>o!=O);
-            p.keys-=1;}}
+            keys-=1;}}
     
     //pushable blocks
     let pushableObjs=filter(objCuld,o=>o.d[1]==1);
@@ -483,7 +530,7 @@ if (mode==1&&!won&&deathTimer==0) {
             if (O.y==p.y+p.h*s&&O.x<p.x+s*p.w&&O.x+s*O.c>p.x&&!some(objCuld,o=>o.x<O.x+s*O.c&&o.x+s*o.c>O.x&&o.y==O.y+O.c*s)) {O.y+=s;O.s=3;continue;}
             if (O.y+O.c*s==p.y&&O.x<p.x+s*p.w&&O.x+s*O.c>p.x&&!some(objCuld,o=>o.x<O.x+s*O.c&&o.x+s*o.c>O.x&&O.y==o.y+o.c*s)) {O.y-=s;O.s=3;continue;}
         } else O.s=Math.max(0,O.s-1);}
-
+    
     //moving blocks
     let movingBlocks=filter(objCuld,o=>o.id==68);
     for(let i=0;i<movingBlocks.length;i++) {
@@ -491,8 +538,8 @@ if (mode==1&&!won&&deathTimer==0) {
             if (O.s%2==0){if (!some(objCuld,o=>o.x<O.x+s*O.c&&o.x+s*o.c>O.x&&o.y==O.y+O.c*s)&&!(O.y+O.c*s==p.y&&O.x<p.x+s*p.w&&O.x+s*O.c>p.x)) {if(fCT%3==0)O.y+=s;} else {O.s+=0;}
             } else       {if (!some(objCuld,o=>o.x<O.x+s*O.c&&o.x+s*o.c>O.x&&O.y==o.y+o.c*s)&&!(O.y==p.y+p.h*s&&O.x<p.x+s*p.w&&O.x+s*O.c>p.x)) {if(fCT%3==0)O.y-=s;} else {O.s-=1;}}}
 
-    //enemy movement
-    let movingEnemies=filter(objCuld,o=>o.id==11||o.id==12||o.id==63||o.id==64);
+    //enemy movement or no movement
+    let movingEnemies=filter(objCuld,o=>o.id==11||o.id==12||o.id==63||o.id==64||o.id==65);
     for(let i=0;i<movingEnemies.length;i++) {
         let O=movingEnemies[i];
         if (O.s>3) O.s=0;
@@ -502,7 +549,7 @@ if (mode==1&&!won&&deathTimer==0) {
         } else if (O.id==63){
             if (O.s%2==0){if (!some(objCuld,o=>o.c!=0&&o.y<O.y+s*O.c&&o.y+s*o.c>O.y&&o.x==O.x+O.c*s)) {O.x+=s;} else {O.s=1;}
             } else       {if (!some(objCuld,o=>o.c!=0&&o.y<O.y+s*O.c&&o.y+s*o.c>O.y&&O.x==o.x+o.c*s)) {O.x-=s;} else {O.s=0;}}
-        } else {
+        } else if (O.id!=65) {
             if (!O.vy)O.vy=0;
             let yC=filter(objCuld,o=>o.x+o.c*s>O.x&&o.x<O.x+O.c*s&&o.y>=O.y+s*O.c&&o.y<=O.y+s*O.c+O.vy&&O!=o).sort((a,b)=>Math.sign(O.y-a.y)*(a.y-b.y))[0];
             if (yC) {
@@ -512,21 +559,33 @@ if (mode==1&&!won&&deathTimer==0) {
             if (O.s%4==2){if (!some(objCuld,o=>o.c!=0&&o.y<O.y+s*O.c&&o.y+s*o.c>O.y&&o.x==O.x+O.c*s)) {O.x+=s/2;O.s+=1;} else {O.s=1;}
             } else if (O.s%4==0){if (!some(objCuld,o=>o.c!=0&&o.y<O.y+s*O.c&&o.y+s*o.c>O.y&&O.x==o.x+o.c*s)) {O.x-=s/2;O.s+=1;} else {O.s=3;}
             } else {O.s-=1;}}
-        
+        //kill if hit by invincible player or projectile
+        if (p.invincible>0&&O.x-s<p.x+s*p.w&&O.x-s+s*O.i>p.x&&O.y-s<p.y+p.h*s&&O.y-s+s*O.i>p.y||some(others,o=>o.x<O.x+s*O.c&&o.y<O.y+O.c*s&&(o.id==-1&&o.x-s+o.i*s>O.x&&o.y-s+o.i*s>O.y||o.id==69.1&&o.x+o.i/8*6*s>O.x&&o.y+o.i/8*2*s>O.y||o.id==69.2&&o.x+o.i/8*2*s>O.x&&o.y+o.i/8*6*s>O.y))) {O.id*=100;O.vy=-2*s;}
         //kill out of bounds enemies
         if (O.x<c.xMin-O.i*s||O.x>s*10*24+c.xMax||O.y>s*10*16+c.yMax||O.y<c.yMin-s*10*6.7){
             objects=filter(objects,o=>o!=O);
             objCuld=filter(objCuld,o=>o!=O);}}
     
-    //dead goomba
-    let deadGoombas=filter(objCuld,o=>o.id==1100);
+    //dead enemies
+    let deadEnemies=filter(objCuld,o=>o.id>=1000&&o.id%100==0);
+    for(let i=0;i<deadEnemies.length;i++) {
+        let O=deadEnemies[i];
+        if (!O.vy) O.vy=0;
+        O.y+=O.vy;
+        O.x+=(O.s%4<2)?-s/2:s/2;
+        O.vy+=s/4;
+        if (O.x<c.xMin-O.i*s||O.x>s*10*24+c.xMax||O.y>s*10*16+c.yMax||O.y<c.yMin-s*10*6.7){
+            objects=filter(objects,o=>o!=O);}}
+    
+    //stompped goomba
+    let deadGoombas=filter(objCuld,o=>o.id==1101);
     for(let i=0;i<deadGoombas.length;i++) {
         let O=deadGoombas[i];
         O.s+=.1;
         if (O.s>2.8) objects=filter(objects,o=>o!=O);}
     
     //mario shells
-    let deadKTs=filter(objCuld,o=>o.id==1200);
+    let deadKTs=filter(objCuld,o=>o.id==1201);
     for(let i=0;i<deadKTs.length;i++) {
         let O=deadKTs[i];
             if (!O.vy) O.vy=0;
@@ -545,30 +604,59 @@ if (mode==1&&!won&&deathTimer==0) {
                     } else O.s=2;
                     if (p.y+p.h*s<=O.y) p.vy=-s*2;}
             } else if (O.x<p.x+p.w*s&&O.x+O.c*s>p.x&&p.y+p.h*s==O.y) {O.s=0;p.vy=-s*2;}
-            if (O.x<p.x+s*p.w&&O.x+s*O.c>p.x&&O.y<p.y+p.h*s&&O.y+s*O.c>p.y)deathTimer=1;
+            if (p.invincible>0&&O.x-s<p.x+s*p.w&&O.x-s+s*O.i>p.x&&O.y-s<p.y+p.h*s&&O.y-s+s*O.i>p.y||some(others,o=>o.x<O.x+s*O.c&&o.y<O.y+O.c*s&&(o.id==69.1&&o.x+o.i/8*6*s>O.x&&o.y+o.i/8*2*s>O.y||o.id==69.2&&o.x+o.i/8*2*s>O.x&&o.y+o.i/8*6*s>O.y))) {O.id=1200;O.vy=-2*s;}
+            if (p.invincible==0&&O.x<p.x+s*p.w&&O.x+s*O.c>p.x&&O.y<p.y+p.h*s&&O.y+s*O.c>p.y)deathTimer=1;
             if (O.x<c.xMin-O.i*s||O.x>s*10*24+c.xMax||O.y>s*10*16+c.yMax||O.y<c.yMin-s*10*6.7){
                 objects=filter(objects,o=>o!=O);
                 objCuld=filter(objCuld,o=>o!=O);}
             }
     
-    //lasers
+    //moving powerups
+    let movingPowerups=filter(objCuld,o=>o.id==13||o.id==14);
+    for(let i=0;i<movingPowerups.length;i++) {
+        let O=movingPowerups[i];
+        if (!O.vy) O.vy=0;
+        let yC3=filter(objCuld,o=>o.c>0&&o.x+o.c*s>O.x&&o.x<O.x+O.c*s&&o.y>=O.y+O.c*s&&o.y<=O.y+O.c*s+O.vy&&O!=o).sort((a,b)=>Math.sign(O.y-a.y)*(a.y-b.y))[0];
+        if (yC3) {
+            O.y=yC3.y-O.c*s;
+            O.vy=0;
+        } else {
+            O.y+=O.vy;}
+        O.vy+=s/4;
+        if (O.s%4==2) {
+            if (!some(objCuld,o=>o.c!=0&&o.y<O.y+s*O.c&&o.y+s*o.c>O.y&&o.x==O.x+O.c*s)) {
+                O.x+=s;
+            } else O.s=0;
+        } else if (O.s%4==0) {
+            if (!some(objCuld,o=>o.c!=0&&o.y<O.y+s*O.c&&o.y+s*o.c>O.y&&O.x==o.x+o.c*s)) {
+                O.x-=s;
+            } else O.s=2;}
+        
+        // Kill out of bounds powerups
+        if (O.x<c.xMin-O.c*s||O.x>s*10*24+c.xMax||O.y>s*10*16+c.yMax||O.y<c.yMin-s*10*6.7){
+            objects=filter(objects,o=>o!=O);
+            objCuld=filter(objCuld,o=>o!=O);
+        }
+    }
     
+    //lasers
     let laserSummoners=filter(objCuld,o=>o.id==69);//nice
     for(let i=0;i<laserSummoners.length;i++) {
         let O=laserSummoners[i];
         if (fCT%150==0||O.s%2==1){
-        O.s=(O.s%4>=2)?O.s-O.s%4:O.s-O.s%4+2;
+        if (O.s%2==1)O.s=(O.s%4>=2)?O.s-O.s%4:O.s-O.s%4+2;
         others.push({x:O.x+O.i/8*s,y:O.y+O.i/8*3*s,id:69.1,vx:s*1.5,vy:0,i:O.i});
         others.push({x:O.x+O.i/8*s,y:O.y+O.i/8*3*s,id:69.1,vx:-s*1.5,vy:0,i:O.i});
         others.push({x:O.x+O.i/8*3*s,y:O.y+O.i/8*s,id:69.2,vx:0,vy:s*1.5,i:O.i});
-        others.push({x:O.x+O.i/8*3*s,y:O.y+O.i/8*s,id:69.2,vx:0,vy:-s*1.5,i:O.i});
-    }}
+        others.push({x:O.x+O.i/8*3*s,y:O.y+O.i/8*s,id:69.2,vx:0,vy:-s*1.5,i:O.i});}}
     let lasers=filter(others,o=>o.id-o.id%1==69);
         for(let i=0;i<lasers.length;i++) {
         let O=lasers[i];
+        if (some(objCuld,o=>o.c!=0&&o.id!=69&&O.x<o.x+s*o.c&&O.y<o.y+o.c*s&&(O.id==69.1&&O.x+O.i/8*6*s>o.x&&O.y+O.i/8*2*s>o.y||O.id==69.2&&O.x+O.i/8*2*s>o.x&&O.y+O.i/8*6*s>o.y))||O.x<c.xMin-O.i*s||O.x>s*10*24+c.xMax||O.y>s*10*16+c.yMax||O.y<c.yMin-s*10*6.7){
+            others=filter(others,o=>o!=O);}
         O.x+=O.vx;O.y+=O.vy;
-        if (O.x<c.xMin-O.i*s||O.x>s*10*24+c.xMax||O.y>s*10*16+c.yMax||O.y<c.yMin-s*10*6.7){
-            others=filter(others,o=>o!=O);}}
+        if (p.invincible==0&&O.x<p.x+s*p.w&&O.y<p.y+p.h*s&&(O.id==69.1&&O.x+O.i/8*6*s>p.x&&O.y+O.i/8*2*s>p.y||O.id==69.2&&O.x+O.i/8*2*s>p.x&&O.y+O.i/8*6*s>p.y)) {others=filter(others,o=>o!=O);damagePlayer();}
+        }
     
     
     //movement input
@@ -587,7 +675,7 @@ if (mode==1&&!won&&deathTimer==0) {
     if (some(objCuld,o=>o.id==58&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&p.y==o.y+o.i*s)) p.vy=s*2;
     
     //player collisions. collidable=if within player velocities and if not overlapping with player
-    let collidable=filter(objCuld,o=>o.c!=0&&o.x<p.x+s*p.w+Math.max(p.vx,0)&&o.x+o.c*s>p.x+Math.min(p.vx,0)&&o.y<p.y+s*p.h+Math.max(p.vy,0)&&o.y+o.c*s>p.y+Math.min(p.vy,0)&&!(o.x+o.c*s>p.x&&o.x<p.x+p.w*s&&o.y+o.c*s>p.y&&o.y<p.y+p.h*s));
+    let collidable=filter(objCuld,o=>!(p.invincible>0&&(o.id>=11&&o.id<=12||o.id>=63&&o.id<=65||o.id>=1000))&&o.c!=0&&o.x<p.x+s*p.w+Math.max(p.vx,0)&&o.x+o.c*s>p.x+Math.min(p.vx,0)&&o.y<p.y+s*p.h+Math.max(p.vy,0)&&o.y+o.c*s>p.y+Math.min(p.vy,0)&&!(o.x+o.c*s>p.x&&o.x<p.x+p.w*s&&o.y+o.c*s>p.y&&o.y<p.y+p.h*s));
     let yC=filter(collidable,o=>o.x+o.c*s>p.x&&o.x<p.x+p.w*s).sort((a,b)=>-(b.y-a.y))[0];
     let xC=filter(collidable,o=>o.y+o.c*s>p.y&&o.y<p.y+p.h*s).sort((a,b)=>-(b.x-a.x))[0];
     if (collidable.length>0&&!xC&&!yC) {
@@ -609,11 +697,11 @@ if (mode==1&&!won&&deathTimer==0) {
 
     //stomp on enemies
     let stompedEnemies=filter(objCuld,o=>(o.id==11||o.id==12||o.id==63||o.id==64||o.id==65)&&o.x<p.x+p.w*s+s&&o.x+o.c*s-s>p.x&&p.y+p.h*s>=o.y-s&&p.y+p.h*s<=o.y);
-    for(let i=0;i<stompedEnemies.length;i++) {
+    for(let i=0;i<stompedEnemies.length&&p.invincible==0;i++) {
         let O=stompedEnemies[i];
         if (O.id==11||O.id==12){
             var O2={...O};
-            O2.id*=100;O2.c=(O.id==11)?0:O2.c/2;O2.s=0;
+            O2.id=O2.id*100+1;O2.c=(O.id==11)?0:O2.c/2;O2.s=0;
             if (O.id==12) {O2.x+=2*s;O2.y+=3*s;}
             objects.push(O2);
         }
@@ -625,9 +713,24 @@ if (mode==1&&!won&&deathTimer==0) {
     let breakableObjs=filter(objCuld,o=>o.d[0]==1)
         for(let i=0;i<breakableObjs.length;i++) {
             let O=breakableObjs[i];
-            if (O.x<p.x+s*p.w&&O.x+s*O.c>p.x&&p.y==O.y+O.c*s||some(objCuld,o=>o.id==1200&&O.y+s<o.y+o.c*s&&O.y+O.c*s>o.y&&(o.x==O.x+O.c*s+s&&o.s==1||o.x+o.c*s==O.x-s&&o.s==2))) {
+            if (O.x<p.x+s*p.w&&O.x+s*O.c>p.x&&p.y==O.y+O.c*s||some(objCuld,o=>o.id==1201&&O.y+s<o.y+o.c*s&&O.y+O.c*s>o.y&&(o.x==O.x+O.c*s+s&&o.s==1||o.x+o.c*s==O.x-s&&o.s==2))||some(others,o=>o.x<O.x+s*O.c&&o.y<O.y+O.c*s&&(o.id==69.1&&o.x+o.i/8*6*s>O.x&&o.y+o.i/8*2*s>O.y||o.id==69.2&&o.x+o.i/8*2*s>O.x&&o.y+o.i/8*6*s>O.y))) {
                 objects=filter(objects,o=>o!=O);
                 objCuld=filter(objCuld,o=>o!=O);}}
+    
+    //star powerup
+    if(some(objCuld,o=>o.id==13&&o.x<=p.x+s*p.w&&o.x+s*o.c>=p.x&&o.y<=p.y+p.h*s&&o.y+s*o.c>=p.y)) {
+        objects=filter(objects,o=>!(o.id==13&&o.x<=p.x+s*p.w&&o.x+s*o.c>=p.x&&o.y<=p.y+p.h*s&&o.y+s*o.c>=p.y));
+        p.invincible = 600;} else p.invincible=Math.max(0,p.invincible-1);
+    
+    if(some(objCuld,o=>o.id==14&&o.x<=p.x+s*p.w&&o.x+s*o.c>=p.x&&o.y<=p.y+p.h*s&&o.y+s*o.c>=p.y)) {
+        objects=filter(objects,o=>!(o.id==14&&o.x<=p.x+s*p.w&&o.x+s*o.c>=p.x&&o.y<=p.y+p.h*s&&o.y+s*o.c>=p.y));
+        if (!p.powered) {
+            p.h+=6;
+            p.w+=2;
+            p.jumpPower+=.5;
+            p.x-=2*s;
+            p.y-=6*s; 
+            p.Super=true;}}
     
     //update switches
     let switches=filter(objCuld,o=>o.id==66);
@@ -643,7 +746,7 @@ if (mode==1&&!won&&deathTimer==0) {
     for (let j=0;j<channels.length;j++) {
         if (some(switches,o=>o.s%2==1&&(o.s-o.s%4)/4==j+1)) {
             channels[j]=1;
-            if (j==30){objects=filter(objects,o=>!(o.id==11||o.id==12||o.id==63||o.id==64||o.id==65)).concat(filter(toObjects(previousObjects[0]),o=>o.id==11||o.id==12||o.id==63||o.id==64||o.id==65));objects=objects.map(function(o){return {x:(o.id>=11&&o.id<=12||o.id>=63&&o.id<=65)?o.x+s:o.x,y:(o.id>=11&&o.id<=12||o.id>=63&&o.id<=65)?o.y+s:o.y,id:o.id,c:o.c,s:o.s,i:o.i,l:o.l,d:o.d};});} 
+            if (j==30){objects=filter(objects,o=>!(o.id==11||o.id==12||o.id==63||o.id==64||o.id==65)).concat(filter(toObjects(previousObjects[0]),o=>o.id==11||o.id==12||o.id==63||o.id==64||o.id==65));objects=objects.map(function(o){return {x:(o.id>=11&&o.id<=14||o.id>=63&&o.id<=65)?o.x+s:o.x,y:(o.id>=11&&o.id<=14||o.id>=63&&o.id<=65)?o.y+s:o.y,id:o.id,c:o.c,s:o.s,i:o.i,l:o.l,d:o.d};});} 
         } else channels[j]=0;}
     
     //update toggleable blocks
@@ -658,13 +761,13 @@ if (mode==1&&!won&&deathTimer==0) {
     if(some(objCuld,o=>(o.id==60)&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&o.y<p.y+p.h*s&&o.y+s*o.i>p.y)) {
         let collected0=objects.length;
         objects=filter(objects,o=>!((o.id==60)&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&o.y<p.y+p.h*s&&o.y+s*o.i>p.y));
-        p.keys+=(collected0-objects.length);}
+        keys+=(collected0-objects.length);}
     
     //coins
     if(some(objCuld,o=>(o.id==10||o.id==57)&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&o.y<p.y+p.h*s&&o.y+s*o.i>p.y)) {
         let collected0=objects.length;
         objects=filter(objects,o=>!((o.id==10||o.id==57)&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&o.y<p.y+p.h*s&&o.y+s*o.i>p.y));
-        p.coins+=(collected0-objects.length);}
+        coins+=(collected0-objects.length);}
     
     //portals
     cI=objCuld.findIndex(o=>o.id==59&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&o.y<p.y+p.h*s&&o.y+s*o.i>p.y);
@@ -685,7 +788,6 @@ if (mode==1&&!won&&deathTimer==0) {
     if(cI>-1) {
         objects.forEach(o=>{if (o.id==51&&o.s%2==1)o.s-=1;});
         objCuld[cI].s+=1;}
-        //Fix to implement culling
 
     //win
     if(some(objCuld,o=>o.id==53&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&o.y<p.y+p.h*s&&o.y+s*o.i>p.y)) {
@@ -693,18 +795,19 @@ if (mode==1&&!won&&deathTimer==0) {
     
     //death
     } else if (p.x<c.xMin-p.w*s||p.x>s*10*24+c.xMax||p.y>s*10*16+c.yMax
-        ||some(objCuld,o=>(o.id==11||o.id==12||o.id==26||o.id==62||o.id==63||o.id==64||o.id==65)&&o.x-s<p.x+s*p.w&&o.x-s+s*o.i>p.x&&o.y-s<p.y+p.h*s&&o.y-s+s*o.i>p.y)) {deathTimer=1;}
+        ||p.invincible==0&&some(objCuld,o=>(o.id==11||o.id==12||o.id==26||(o.id==62)||o.id==63||o.id==64||o.id==65)&&o.x-s<p.x+s*p.w&&o.x-s+s*o.i>p.x&&o.y-s<p.y+p.h*s&&o.y-s+s*o.i>p.y)) {
+            damagePlayer()}
 
 } else if (mode==0) {
-    if (keyWPressed||keyUpPressed) c.y+=3*s*c.z;
-    if (keyAPressed||keyLeftPressed) c.x+=3*s*c.z;
-    if (keySPressed||keyDownPressed) c.y-=3*s*c.z;
-    if (keyDPressed||keyRightPressed) c.x-=3*s*c.z;
+    if (keyWPressed||keyUpPressed) c.y+=keyShiftPressed?5*s*c.z:3*s*c.z;
+    if (keyAPressed||keyLeftPressed) c.x+=keyShiftPressed?5*s*c.z:3*s*c.z;
+    if (keySPressed||keyDownPressed) c.y-=keyShiftPressed?5*s*c.z:3*s*c.z;
+    if (keyDPressed||keyRightPressed) c.x-=keyShiftPressed?5*s*c.z:3*s*c.z;
     if (mouseZ==1) {
         if (mouseY<=canvas.height/screenHeightBlocks*(screenHeightBlocks-4)) {
             let X=Math.floor((mouseX-c.x)/(s*editGridSize));
             let Y=Math.floor((mouseY-c.y)/(s*editGridSize));
-            if (editObjId>69||(editObjId>12&&editObjId<50)&&editObjId!=25&&editObjId!=26) {
+            if (editObjId>69||(editObjId>14&&editObjId<50)&&editObjId!=25&&editObjId!=26) {
                 objects=filter(objects,o=>!(o.x==X*s*editGridSize&&o.y==Y*s*editGridSize&&o.l==editLayer));
             } else {
             let oI=objects.findIndex(o=>o.x==X*s*editGridSize&&o.y==Y*s*editGridSize&&o.l==editLayer);
@@ -725,7 +828,6 @@ if (mode==1&&!won&&deathTimer==0) {
                     l:editLayer,
                     d:editBlockData});
                     }}
-            
             //save history
             if (toSave(objects)!=previousObjects[0]){previousObjects.unshift(toSave(objects));}
             
@@ -749,14 +851,17 @@ for (let l = 0; l < 100; l++) {
 
 //draw player and others
 if (mode==1) { 
-    ctx.fillStyle="rgb(255,0,0)";
+    ctx.fillStyle=(p.invincible>0&&Math.floor(fCT/6)%3)?"rgb(100,100,100,0.8)":"rgb(255,0,0)";
     ctx.fillRect(p.x+c.x,p.y+c.y,s*p.w,s*p.h);
     for (let i=0;i<others.length;i++){
         let O=others[i];
+        if (O.id==-1) {drawRect(O.x-s,O.y-s,O.i*s,O.i*s,"255,41,74");continue;}
         if (O.id==69.1) {drawRect(O.x,O.y,O.i/8*6*s,O.i/8*2*s,"255,41,74");continue;}
-        if (O.id==69.2) {drawRect(O.x,O.y,O.i/8*2*s,O.i/8*6*s,"255,41,74");continue;}
+        if (O.id==69.2) {drawRect(O.x,O.y,O.i/8*2*s,O.i/8*6*s,"255,41,74");continue;}}
+    
+    if (weapon==1){let a=Math.atan2(mouseY-(p.y+c.y+p.h*s/2),mouseX-(p.x+c.x+p.w*s/2));ctx.save();ctx.translate(p.x+c.x+p.w*s/2,p.y+c.y+p.h*s/2);ctx.rotate(a+Math.PI/4);ctx.drawImage(jerryBlaster,s*4,-s*12,s*8,s*8);ctx.restore();}
     }
-    }
+    
 
 //edit mode overlays
 if (mode==0) {
@@ -798,7 +903,7 @@ function f() {
     const n = performance.now();
     if (keyPPressed){keyPPressed=false;pause=!pause;}
     if (!pause) t();
-    fC++;fCT++;
+    fC++;if(deathTimer==0)fCT++;
     if (n-last>=1000) {fps=fC;fC=0;last=n;}
 requestAnimationFrame(f);
 }
