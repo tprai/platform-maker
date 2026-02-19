@@ -89,20 +89,21 @@ function button(e) {
         let p=prompt("Load Level Data", "").trim();
         if (p.trim()!=''){try{loadSettings(p);objects=toObjects(p.substring(p.indexOf("–")+1));objects=sizedLevel();if (toSave(objects)!=previousObjects[0]){previousObjects.unshift(toSave(objects));toPlayMode();}}catch(e){alert("Error Loading Level Data");}}}
     if (e=='ImageSize') {
-        if (editSize==20) {editSize=1;
+        if (editSize==50) {editSize=1;
         } else if (editSize==1) {editSize=2;
         } else if (editSize==2) {editSize=5;
         } else if (editSize==5) {editSize=10;
-        } else if (editSize==10) {editSize=15;
-        } else if (editSize==15) {editSize=20;}
+        } else if (editSize==10) {editSize=20;
+        } else if (editSize==20) {editSize=50;
+        }
         document.getElementById("ImageSize").innerHTML="Block Size: "+editSize+" px";}
     if (e=='GridSize') {
-        if (editGridSize==20) {editGridSize=1;
+        if (editGridSize==50) {editGridSize=1;
         } else if (editGridSize==1) {editGridSize=2;
         } else if (editGridSize==2) {editGridSize=5;
         } else if (editGridSize==5) {editGridSize=10;
-        } else if (editGridSize==10) {editGridSize=15;
-        } else if (editGridSize==15) {editGridSize=20;}
+        } else if (editGridSize==10) {editGridSize=20;
+        } else if (editGridSize==20) {editGridSize=50;}
         document.getElementById("GridSize").innerHTML="Grid Size: "+editGridSize+" px";}
     if (e=='State') {
         if (editState==0) {editState=1;
@@ -485,7 +486,7 @@ ctx.fillStyle=backgroundColor;
 ctx.fillRect(0,0,canvas.width,canvas.height);
 
 //culling
-var objCuld=filter(objects,o=>o.d[0]==1||o.x>=-c.x-s*20&&o.x<=-c.x+canvas.width+s*10&&o.y>=-c.y-s*20&&o.y<=-c.y+canvas.height+s*30);
+var objCuld=filter(objects,o=>o.d[0]==1||o.x>=-c.x-s*10-o.i*s&&o.x<=-c.x+canvas.width+o.i*s&&o.y>=-c.y-s*10-o.i*s&&o.y<=-c.y+canvas.height+s*10+o.i*s);
     
 if (mode==1&&!won&&deathTimer==0) {
     if (keyGPressed){weapon=-(weapon-1);keyGPressed=false;}
