@@ -26,20 +26,16 @@ canvas.addEventListener('wheel', function (event){ if (mode==0){
 canvas.addEventListener("mousedown", function(e) {
     mouseW=e.button;
   });
-function setCookie(cname, cvalue, exdays) {//W www w3schools
-    const d=new Date();
-    d.setTime(d.getTime()+(exdays*24*3600000));
-    let expires="expires="+d.toUTCString();
-    document.cookie=cname+"="+cvalue+";"+expires+";path=/";}
-function getCookie(cname) {
-    let name=cname + "=";
-    let ca=document.cookie.split(';');
-    for(let i=0; i < ca.length; i++) {
-        let c=ca[i];
-        while (c.charAt(0) == ' ') {c=c.substring(1);}
-        if (c.indexOf(name) == 0) {
-            return c.substring(name.length, c.length);
-        }}return "";}
+function saveToStorage(cname, cvalue) {
+    const item = {value: cvalue};
+    localStorage.setItem(cname, JSON.stringify(item));
+}
+function getFromStorage(key) {
+    const itemStr = localStorage.getItem(key);
+    if (!itemStr) return "";
+    const item = JSON.parse(itemStr);
+    return item.value;
+}
 window.addEventListener('resize', () => {
     canvas.style.height=window.innerHeight+'px';
     canvas.style.width=canvas.style.height*1.5+'px';
@@ -106,11 +102,11 @@ function button(e) {
         } else if (txt.innerHTML=="Clear") txt.innerHTML="Sure?";
         return;}
     if (e=='Save') {
-        setCookie("level1",saveSettings()+toSave(unSizedLevel()),367);
+        saveToStorage("level",saveSettings()+toSave(unSizedLevel()),367);
         setMessage("Level Saved","200,255,200");
         return;}
     if (e=='Load') {
-        let p=getCookie("level1");
+        let p=getFromStorage("level");
         if (confirm("Load Level?")&&p.trim()!=''){
         try{
             loadSettings(p);
@@ -289,6 +285,7 @@ function drawObj(o,transform=0) {
     } else if (o.id==84) {ctx.drawImage(sideMoveBlock,0,0,s*o.i,s*o.i);
     } else if (o.id==85) {drawAutoTile(o,dirtTiles,32);
     } else if (o.id==86) {ctx.drawImage(dirtExtras,32*3,0,32,32,0,0,s*o.i,s*o.i);
+    } else if (o.id==87) {drawAutoTile(o,magmaTiles,32);
     
     
     } else if (o.id==990) {ctx.drawImage(gDBackground,0,0,s*o.i,s*o.i);
@@ -344,7 +341,7 @@ function getCollision(id) {//when placing in  editore
     if (id==82) return Math.max(1,editSize-4);
     if (id==80) return Math.max(1,editSize-6);
     if (editCollision==1) return editSize;
-    if (id==10||id==31||id==81||id==25||id==51||id==53||id==57||id==59||id==60||id==66) return 0;
+    if (id==10||id==31||id==81||id==87||id==25||id==51||id==53||id==57||id==59||id==60||id==66) return 0;
     return editSize;}
 function getFromTileset(me) {//b= auto-tile id
     let Q,W,E,A,D,Z,X,C;
@@ -365,7 +362,7 @@ function getFromTileset(me) {//b= auto-tile id
         
     if (W) { if (A) { if (D) { if (X) {return [0,3]; } else  return [0,0]; } else { if (X) {return [1,3]; } else if (C) { return [1,0]; } else  return [8,0]; } } else if (D) { if (X) {    return [3,3]; } else if (Z) { return [3,0]; } else      return [11,0]; } else if (X) { return [2,3]; } else if (Z) { if (C) {    return [2,0]; } else      return [5,0]; } else if (C) { return [6,0]; } else          return [10,0]; } else if (X) { if (A) { if (D) {    return [0,2]; } else if (E) { return [1,2]; } else      return [8,3]; } else if (D) { if (Q) {    return [3,2]; } else      return [11,3]; } else if (Q) { if (E) {    return [2,2]; } else      return [5,3]; } else if (E) { return [6,3]; } else          return [9,3]; } else if (A) { if (D) {        return [0,1]; } else if (C) { if (E) {    return [1,1]; } else      return [4,2]; } else if (E) { return [4,1]; } else          return [8,1]; } else if (D) { if (Q) { if (Z) {    return [3,1]; } else      return [7,1]; } else if (Z) { return [7,2]; } else          return [11,2]; } else if (Q) { if (E) { if (Z) { if (C) {return [2,1]; } else  return [7,3]; } else if (C) { return [4,3]; } else      return [9,0]; } else if (Z) { if (C) {    return [7,0]; } else      return [8,2]; } else if (C) { return [9,1]; } else          return [5,1]; } else if (E) { if (C) {if (Z) {    return [4,0];} else      return [11,1];} else if (Z) { return [10,2];} else          return [6,1];} else if (Z) {if (C) {        return [10,3];} else          return [5,2];} else if (C) {     return [6,2];} else              return [9,2];}
 function updateAutoTiles(X,Y,all=false) {
-    let autoTiles=objects.filter(o=>(all||o.x<=X+o.i*s&&o.y<=Y+o.i*s&&o.x>=X-o.i*s&&o.y>=Y-o.i*s)&&(o.id>=20&&o.id<=22||o.id>=75&&o.id<=79||o.id==85));
+    let autoTiles=objects.filter(o=>(all||o.x<=X+o.i*s&&o.y<=Y+o.i*s&&o.x>=X-o.i*s&&o.y>=Y-o.i*s)&&(o.id>=20&&o.id<=22||o.id>=75&&o.id<=79||o.id==85||o.id==87));
     for (i=0;i<autoTiles.length;i++) {
         let O=autoTiles[i];
         let place=getFromTileset(O);
@@ -590,7 +587,7 @@ let noEditLevel=false;
 let mode=1;
 let screenHeightBlocks=16;//blocks (10px) that fit height of canvas
 let s=canvas.height/screenHeightBlocks/10;//size of one pixel
-let p={x:0,y:0,vx:2,vy:0,vMax:1,jumpPower:2.5,w:4,h:8,startX:0,startY:0,invincible:0,Super:0,gravity:s/8,G_Max:4,crouching:false};
+let p={x:0,y:0,vx:2,vy:0,vMax:1,jumpPower:2.5,w:4,h:8,startX:0,startY:0,invincible:0,Super:0,gravity:s/8,G_Max:4,crouching:false,friction:0};
 let p1={...p};
 let fat={a:0,b:0,c:0};//screen shake when character is on shrooms
 let animation={j:0,l:0,w:0,d:1}//jump time, land time, walk time, direction facing
@@ -931,8 +928,13 @@ if (mode==1&&!won&&deathTimer==0) {
     } else {
         p.x+=p.vx;
         p.y+=p.vy;}
-    p.vy=Math.min(p.vy+p.gravity,s*p.G_Max);//gravity
+    p.vy=Math.min(p.vy+p.gravity/(1+p.friction),s*p.G_Max/(1+p.friction));//gravity
 
+    //friction block detection
+    p.friction=0;
+    let frick=objCuld.filter(o=>(o.id==87)&&overlapping(p,{...o,c:o.i}))[0];
+    if (frick) {p.friction=4;}
+    
     //shoot weapons
     if (weapon!=0) {
         if (mouseZ==1||keyShiftPressed) {
@@ -1083,7 +1085,7 @@ if (mode==1&&!won&&deathTimer==0) {
             } 
             if (mouseW==1) {
                 editObjId=objects.findIndex(o=>o.x==X&&o.y==Y&&o.l==editLayer).id;
-            } else if (mouseW==2||editObjId>86||editObjId>69&&editObjId<75||editObjId>14&&editObjId<20||editObjId>31&&editObjId<50) {
+            } else if (mouseW==2||editObjId>87||editObjId>69&&editObjId<75||editObjId>14&&editObjId<20||editObjId>31&&editObjId<50) {
                 objects=filter(objects,o=>!(o.x==X&&o.y==Y&&o.l==editLayer));
             } else if (editSelection[0]>-1) {
                 let O=objects[editSelection[0]];
@@ -1156,12 +1158,8 @@ if (mode==1) {
 //Draw objects on screen
 for (let l = 0; l < 100; l++) layers[l].length = 0;//empty layers
 for (let i = 0, len = objCuld.length; i < len; i++) layers[objCuld[i].l].push(objCuld[i]);//update layers
-if (mode==0&&keyLPressed){
-        const bucket = layers[editLayer];
-    for (let j = 0, blen = bucket.length; j < blen; j++) {
-        drawObj(bucket[j],mode);}
-} else {
-    for (let l = 0; l < 100; l++) {
+if (!mode==0||!keyLPressed) {
+    for (let l = 0; l < 67; l++) {
         const bucket = layers[l];
         for (let j = 0, blen = bucket.length; j < blen; j++) {
             drawObj(bucket[j],mode);}}}
@@ -1180,6 +1178,16 @@ if (mode==1) {
     if (weapon==1){let a=Math.atan2(mouseY-(p.y+c.y+p.h*s/2),mouseX-(p.x+c.x+p.w*s/2));ctx.save();ctx.translate(p.x+c.x+p.w*s/2,p.y+c.y+p.h*s/2);ctx.rotate(a+Math.PI/4);ctx.drawImage(jerryBlaster,s*4,-s*12,s*8,s*8);ctx.restore();}
     }
     
+//draw foreground layers
+if (mode==0&&keyLPressed) {
+    const bucket = layers[editLayer];
+    for (let j = 0, blen = bucket.length; j < blen; j++) {
+        drawObj(bucket[j],mode);}
+} else for (let l = 67; l < 100; l++) {
+    const bucket = layers[l];
+    for (let j = 0, blen = bucket.length; j < blen; j++) {
+        drawObj(bucket[j],mode);}}
+
 
 //edit mode overlays
 if (mode==0) {
