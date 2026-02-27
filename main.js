@@ -1142,7 +1142,7 @@ if (mode==1) {
         if (p.x+p.w*s/2>=O.x&&p.x+p.w*s/2<O.x+O.w*s&&p.y+p.h*s/2>O.y&&p.y+p.h*s/2<O.y+O.i*s) {
             if (O.i*s<canvasHeight)c.z=Math.max(O.i*s/canvasHeight,5/8);
             c.xMin=(O.w*s<canvas.width)?-(canvas.width-O.w*s)/2+O.x:O.x;
-            c.yMin=(O.i*s<canvas.height)?-(canvas.height-O.i*s)/2+O.y:O.y;
+            c.yMin=(O.i*s<canvas.height)?-(canvas.height-O.i*s)/2+O.y:O.y
             c.xMax=(O.w*s<canvas.width)?c.xMin:O.x+O.w*s-canvas.width;
             c.yMax=(O.i*s<canvas.height)?c.yMin:O.y+O.i*s-canvas.height;
             objCuld=filter(objects,o=>o.d[0]==1||o.x+o.i*s>O.x&&o.x<O.x+O.w*s&&o.y+o.i*s>O.y&&o.y<O.y+O.i*s);
@@ -1150,10 +1150,9 @@ if (mode==1) {
         c.z=c.zDefault;
     }
     c.vx=-Math.max(-s*20*c.z,Math.min(s*20*c.z,Math.floor((-(p.x+p.w*s/2+15*p.vx*c.z-(-c.x+canvas.width/2))/s/20)**3*10)/20*s));
-    c.vy=-Math.max(-s*20*c.z*(Math.max(s*20*c.z,p.vy)/s/20/c.z),Math.min(s*20*c.z,Math.floor((-(p.y+p.h*s/2+Math.max(p.vy*2,0)-(-c.y+canvas.height*0.7))/s/10)**3)/4*s));
+    c.vy=-Math.max(-s*20*c.z,Math.min(s*20*c.z,-canvas.height/32*Math.max(0,p.vy/s/p.G_Max/c.z-.5)+Math.floor((-(p.y+p.h*s/2+Math.max(p.vy*2,0)-(-c.y+canvas.height*.7))/s/10)**3)/4*s));
     c.x=-c.x2-Math.max(c.xMin,Math.min(c.xMax,-c.x+c.vx));
     c.y=-c.y2-Math.max(c.yMin,Math.min(c.yMax,-c.y+c.vy));}
-
 //Draw objects on screen
 for (let l = 0; l < 100; l++) layers[l].length = 0;//empty layers
 for (let i = 0, len = objCuld.length; i < len; i++) layers[objCuld[i].l].push(objCuld[i]);//update layers
