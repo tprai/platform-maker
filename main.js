@@ -55,7 +55,7 @@ function mouse(e) {
     if (e=='c') {
         if (mode==0&&mouseY>canvas.height/screenHeightBlocks*(screenHeightBlocks-4)){
             editObjId=Math.floor((mouseY-canvas.height/screenHeightBlocks*(screenHeightBlocks-4))/(s*10*c.z))*Math.floor(screenHeightBlocks*8/5)+Math.floor((mouseX)/(s*10*c.z));
-            editBlockData=[0,0,0,0];
+            editBlockData=[0,0,0];
             updateBD();
             if (editObjId!=0) {document.getElementById("rgb").style.visibility='hidden';} else document.getElementById("rgb").style.visibility='';
         }}}
@@ -72,19 +72,19 @@ function button(e) {
         return;}
     if (e=='cPlus') {
         editChannel=Math.min((keyShiftPressed&&keyFPressed&&editChannel==21)?31:29,(keyShiftPressed)?editChannel+10:editChannel+1);
-        e2=(editChannel<=9)?"&emsp;"+editChannel:"&ensp;"+editChannel;
+        e2=(editChannel<=9)?"&emsp;&hairsp;&hairsp;"+editChannel:"&ensp;"+editChannel;
         document.getElementById("Channel").innerHTML="Channel:&emsp;"+e2+"&emsp;";
         return;}
     if (e=='cMinus') {
         editChannel=Math.max(0,(keyShiftPressed)?editChannel-10:editChannel-1);
-        e2=(editChannel<=9)?"&emsp;"+editChannel:"&ensp;"+editChannel;
-        document.getElementById("Channel").innerHTML="Channel:&emsp;"+e2+"&emsp;";
+        e2=(editChannel<=9)?"&emsp;&hairsp;&hairsp;"+editChannel:"&ensp;"+editChannel;
+        document.getElementById("Channel").innerHTML=(editChannel==0)?"Channel:&ensp;&emsp;no&emsp;":"Channel:&emsp;"+e2+"&emsp;";
         return;}
     if (e=='Mode') {
         if (mode==0) {toPlayMode()} else {toEditMode()}
         return;}
     if (e=='BlockData') {
-        if (editBDId==3) {editBDId=1;
+        if (editBDId==2) {editBDId=1;
         } else{editBDId+=1;}
         updateBD();
         return;}
@@ -242,11 +242,11 @@ function filter(arr, predicate) {
     return result;}
 function drawRect(x,y,w,h,C){
     ctx.fillStyle="rgb("+C+")";
-    ctx.fillRect(x,y,(w>=50)?w+2:w,(h>=50)?h+2:h);}
-let b=-1;
+    ctx.fillRect(x,y,(w>=49*s)?w+1:w,(h>=49*s)?h+1:h);
+    }
 function drawObj(o,transform=0) {
     ctx.save();ctx.translate(o.x+c.x+o.i*s/2,o.y+c.y+o.i*s/2);ctx.rotate(o.a*Math.PI/2);ctx.translate(-o.i*s/2,-o.i*s/2);
-    if (o.id==0) {ctx.fillStyle=(o.r!=null)?"rgb("+o.r+","+o.g+","+o.b+")":editBlockColor;ctx.fillRect(0,0,s*o.i,s*o.i);
+    if (o.id==0) {ctx.fillStyle=(o.r!=null)?"rgb("+o.r+","+o.g+","+o.b+")":editBlockColor;drawRect(0,0,s*o.i,s*o.i,o.r+","+o.g+","+o.b);
     } else if (o.id==1) {drawRect(0,0,s*o.i,s*o.i,"255,255,255");
     } else if (o.id==2) {drawRect(0,0,s*o.i,s*o.i,"115,170,255");
     } else if (o.id>=3&&o.id<=8) {ctx.drawImage(mario,(o.id-3)*16,0,16,16,0,0,o.i*s,o.i*s);
@@ -261,18 +261,21 @@ function drawObj(o,transform=0) {
     } else if (o.id==21) {drawAutoTile(o,gD2,44);
     } else if (o.id==22) {drawAutoTile(o,gD1,44);
     } else if (o.id==23) {ctx.drawImage(gD0,0,0,o.i*s,o.i*s);
-    } else if (o.id==25&&mode==0) {ctx.drawImage(startPos,0,0,o.i*s,o.i*s);
-    } else if (o.id==26&&mode==0) {ctx.drawImage(killBlock,0,0,o.i*s,o.i*s);
-    } else if (o.id>=27&&o.id<=30&&mode==0) {ctx.drawImage(blockBlocks,128*(o.id-27),0,128,128,0,0,o.i*s,o.i*s);
-    } else if (o.id==31&&mode==0) {ctx.globalAlpha=(o.l!=editLayer&&o.l>=0)?0.2:0.67;ctx.strokeStyle='rgb(20,20,50)';ctx.lineWidth=Math.min(10,o.w,o.i)*s/4;ctx.strokeRect(0+Math.min(10,o.w,o.i)*s/8,0+Math.min(10,o.w,o.i)*s/8,o.w*s-Math.min(10,o.w,o.i)*s/4,o.i*s-Math.min(10,o.w,o.i)*s/4);ctx.drawImage(camArea,0+o.w*s/2-Math.min(10,o.w,o.i)*s/2,0+o.i*s/2-Math.min(10,o.w,o.i)*s/2,Math.min(10,o.w,o.i)*s,Math.min(10,o.w,o.i)*s);ctx.globalAlpha=1;
+    } else if (o.id==25) {if (mode==0) ctx.drawImage(startPos,0,0,o.i*s,o.i*s);
+    } else if (o.id==26) {if (mode==0) ctx.drawImage(killBlock,0,0,o.i*s,o.i*s);
+    } else if (o.id>=27&&o.id<=30) {if (mode==0) ctx.drawImage(blockBlocks,128*(o.id-27),0,128,128,0,0,o.i*s,o.i*s);
+    } else if (o.id==31) {if (mode==0) {ctx.globalAlpha=(o.l!=editLayer&&o.l>=0)?0.2:0.67;ctx.strokeStyle='rgb(20,20,50)';ctx.lineWidth=Math.min(10,o.w,o.i)*s/4;ctx.strokeRect(0+Math.min(10,o.w,o.i)*s/8,0+Math.min(10,o.w,o.i)*s/8,o.w*s-Math.min(10,o.w,o.i)*s/4,o.i*s-Math.min(10,o.w,o.i)*s/4);ctx.drawImage(camArea,0+o.w*s/2-Math.min(10,o.w,o.i)*s/2,0+o.i*s/2-Math.min(10,o.w,o.i)*s/2,Math.min(10,o.w,o.i)*s,Math.min(10,o.w,o.i)*s);ctx.globalAlpha=1;}
+    } else if (o.id==32) {ctx.drawImage(controlBlocks,Math.floor(o.timer||0)%2*16,Math.floor((o.timer||0)/2)*16,16,16,0,0,o.i*s,o.i*s);
+    } else if (o.id>=33&&o.id<=37) {if (mode==0) ctx.drawImage(controlBlocks,32*(o.id-32),0,32,32,0,0,o.i*s,o.i*s);
+    } else if (o.id==38) {if (mode==0) ctx.drawImage(controlBlocks,(o.l<0)?32*(6+getMoveBlocks(editChannel)):32*(6+o.w),0,32,32,0,0,o.i*s,o.i*s);
     
-    } else if (o.id==51) {ctx.drawImage(jerry,(1+o.s%2||1)*16,0*16,16,16,0,0,s*o.i,s*o.i);
+    } else if (o.id==51) {ctx.drawImage(jerry,(1+(o.activated||0))*16,0*16,16,16,0,0,s*o.i,s*o.i);
     } else if (o.id==52) {
     } else if (o.id>=50&&o.id<=61) {ctx.drawImage(jerry,((o.id-50)%4)*16,Math.floor((o.id-50)/4)*16,16,16,0,0,s*o.i,s*o.i);
     } else if (o.id==62) {ctx.drawImage(jerry,Math.floor(fCT%64/16)*16,3*16,16,16,0-transform*s,0-transform*s,s*o.i,s*o.i);
     } else if (o.id>=63&&o.id<=65) {ctx.drawImage(jerry,Math.floor(fCT%32/8)*16,(o.id-59)*16,16,16,0-transform*s,0-transform*s,s*o.i,s*o.i);
-    } else if (o.id==66||o.id==67) {ctx.drawImage(jerry,(2*o.id%3+(o.s||0)%2)*16,7*16,16,16,0,0,s*o.i,s*o.i);
-    } else if (o.id==68) {ctx.drawImage(jerry,((o.s||0)%2)*16,8*16,16,16,0,0,s*o.i,s*o.i);//-(mode*(o.s%2-.5)*(fCT%3)*s||0)smooth movement
+    } else if (o.id>=66&&o.id<=67) {ctx.drawImage(jerry,(o.id*2-132+o.s%2)*16,7*16,16,16,0,0,s*o.i,s*o.i);
+    } else if (o.id==68) {ctx.drawImage(jerry,o.s%2*16,8*16,16,16,0,0,s*o.i,s*o.i);
     } else if (o.id==69) {ctx.drawImage(jerryLaser,0,0,s*o.i,s*o.i);
     
     } else if (o.id==75) {drawAutoTile(o,grassyStone);
@@ -286,25 +289,31 @@ function drawObj(o,transform=0) {
     } else if (o.id==85) {drawAutoTile(o,dirtTiles,32);
     } else if (o.id==86) {ctx.drawImage(dirtExtras,32*3,0,32,32,0,0,s*o.i,s*o.i);
     } else if (o.id==87) {drawAutoTile(o,magmaTiles,32);
+    } else if (o.id==88) {ctx.drawImage(speedBoost,32*Math.floor((fCT%28)/7),0,32,32,0,0,o.i*s,o.i*s);
     
     
-    } else if (o.id==990) {ctx.drawImage(gDBackground,0,0,s*o.i,s*o.i);
-    
+    } else if (o.id==900) {ctx.drawImage(gDBackground,0,0,s*o.i,s*o.i);
+    } else if (o.id==989) {ctx.drawImage(boss1,0,0,64,64,0,0,s*o.i,s*o.i);
+    } else if (o.id==990) {ctx.drawImage(boss1,64,0,64,32,-o.i*s/2,0,2*o.i*s,s*o.i);
+    } else if (o.id==991) {ctx.drawImage(boss1,128,0,32,64,0,-o.i*s/2,o.i*s,2*o.i*s);
+    } else if (o.id==992) {ctx.drawImage(boss1,192,0,64,64,0,0,s*o.i,s*o.i);
+    } else if (o.id==993) {ctx.drawImage(boss1,64,32,64,32,-o.i*s/2,0,2*o.i*s,s*o.i);
+    } else if (o.id==994) {ctx.drawImage(boss1,160,0,32,64,0,-o.i*s/2,o.i*s,2*o.i*s);
     
     } else if (o.id==1100) {ctx.drawImage(marioDeadEnemies,0,0,16,16,0-transform*s,-transform*s*2+o.i*s*0.15,o.i*s,o.i*s*0.85);
     } else if (o.id==1200) {ctx.drawImage(marioDeadEnemies,16,3,16,13,0-transform*s*3,0-transform*s*6+o.i*s*0.2,o.i*s,o.i*s*0.8);
     } else if (o.id==1101) {ctx.drawImage(marioEnemies,0,0*16,16,16,0-transform*s,0-transform*s*2+o.i*s*0.4,o.i*s,o.i*s*0.6);
     } else if (o.id==1201) {ctx.drawImage(marioShell,0,0,16,13,0-transform*s*3,0-transform*s*6+o.i*s*0.2,o.i*s,o.i*s*0.8);
     } else if (o.id>=6300&&o.id<=6500) {ctx.drawImage(jerry,0*16,(o.id/100-59)*16,16,16,-transform*s,0-transform*s,s*o.i,s*o.i);
-    } ctx.restore();}
+    
+    } else if (mode!=0) ctx.drawImage(controlBlocks,8*32,0,32,32,0,0,o.i*s,o.i*s);
+    ctx.restore();}
 function respawn() {
-    mode=1;
     deathTimer=0;
     p={...p1};
     setStartPos();
     p.x=p.startX;
     p.y=p.startY;
-    p.super=false;
     jump=false;
     c.x=-Math.max(c.xMin,Math.min(c.xMax,p.x-s*10*12));
     c.y=-Math.max(c.yMin,Math.min(c.yMax,p.y-s*10*8));
@@ -335,15 +344,15 @@ function collideY(o=6.7) {
             p.y=o.y+o.c*s;p.vy=0;
         } else {p.y+=p.vy;}
     }}}
-function getCollision(id) {//when placing in  editore
+function getCollision(id) {//when placing in editor
     if (editCollision==0) return 0;
     if (id>=11&&id<=14||id>=62&&id<=65) return Math.max(1,editSize-2);
     if (id==82) return Math.max(1,editSize-4);
     if (id==80) return Math.max(1,editSize-6);
     if (editCollision==1) return editSize;
-    if (id==10||id==31||id==81||id==87||id==25||id==51||id==53||id==57||id==59||id==60||id==66) return 0;
+    if (id==10||id>=31&&id<=38||id==81||id==87||id==88||id==25||id==51||id==53||id==57||id==59||id==60||id==66) return 0;
     return editSize;}
-function getFromTileset(me) {//b= auto-tile id
+function getFromTileset(me) {
     let Q,W,E,A,D,Z,X,C;
     let culd2=objects.filter(o=>o.l>=0&&o.l==me.l&&o.i==me.i&&o.x+o.i*s>=me.x&&o.x<=me.x+me.i*s&&o.y+o.i*s>=me.y&&o.y<=me.y+me.i*s);
     if (!culd2.some(o=>o.x+o.i*s==me.x&&o.y==me.y)) {A=true;}
@@ -380,29 +389,26 @@ function drawAutoTile(me,tileset,tileSize=16) {
     if (me.id==85){
         if (me.z==1||me.z==3) ctx.drawImage(dirtExtras,32*2,0,32,32,0,me.i*s,me.i*s,me.i*s);
         if (me.z>=2) ctx.drawImage(dirtExtras,Math.round((Math.PI*(me.y+me.x))%1)*32,0,32,32,0,-me.i*s,me.i*s,me.i*s);}}
-function toEditMode() {
-    if (!noEditLevel){
+function toEditMode() {if (!noEditLevel){
     unWin();
     mode=0;
+    objects=toObjects(previousObjects[0]); 
     deathTimer=0;
     won=false;
     document.getElementById("Clear").innerHTML="Clear";
-    objects=toObjects(previousObjects[0]); 
     document.getElementById("Mode").innerHTML="Play";
     document.querySelectorAll('.edit').forEach(e=>e.hidden=false);
     document.getElementById("timer").hidden=true;
     editSelection=[-1,-1];
     if (editObjId==0) document.getElementById("rgb").style.visibility='';
     others.length=0;
-    let activatedCheckpointIndex=objects.findIndex(o=>o.id==51&&o.s==1);
-    if (activatedCheckpointIndex>=0) objects[activatedCheckpointIndex].s=0;
     }}
 function toPlayMode() {
     if (objects.length==0) return;
     fCT=0;
     keys=0;
     coins=0;
-    mode=1;
+    mode=3;
     respawn();
     document.getElementById("Mode").innerHTML="Edit";
     document.getElementById("timer").innerHTML="0.00s";
@@ -410,6 +416,9 @@ function toPlayMode() {
     if (editObjId==0) document.getElementById("rgb").style.visibility='hidden';
     document.querySelectorAll('.edit').forEach(e=>e.hidden=true);
     objects=objects.map(o=>Object.fromEntries(Object.entries({...o,y:(o.id>=11&&o.id<=14||o.id>=62&&o.id<=65)?o.y+s:(o.id==80)?o.y+s*3:(o.id==82)?o.y+s*2:o.y,x:(o.id>=11&&o.id<=14||o.id>=62&&o.id<=65)?o.x+s:(o.id==80)?o.x+s*3:(o.id==82)?o.x+s*2:o.x}).filter(([_,v])=>v!==undefined)));
+    let channeles=[...new Set(objects.map(o=>Math.floor(o.s/2)-1))].sort();
+    channels=[];for(let i=0,max=Math.max(...channeles)+1;i<max;i++){channels.push((channeles.includes(i))?0:-1);}
+    channelsLast=[...channels];
     c.z=c.zDefault;
     zoom=1/c.zDefault;
     editRotation=0;
@@ -427,7 +436,7 @@ function toSave(o) {
             key=(key=="id")?"q":key;
             if (key=="c"&&value==10||key=="i"&&value==obj.c||key=="s"&&value==0||key=="d"&&parseInt(value.join(''),2)==0){return null;}
             key=(key!="d"&&value%10==0)?key.toUpperCase():key;
-            value=(key=="d")?parseInt(value.join(''),2):(value%10==0)?Math.abs(value)/10:Math.abs(value);
+            value=(key=="d")?parseInt([...value].reverse().join(''),2):(value%10==0)?Math.abs(value)/10:Math.abs(value);
             return key+value;})
             .join("");
     }).join("-");}
@@ -437,13 +446,13 @@ function toObjects(str) {
         let matches=segment.match(/[a-zA-Z]\d+/g);
         matches.forEach(pair => {
             let key=(pair[0].toLowerCase()=="q")?"id":pair[0].toLowerCase();
-            let value=(key=="d")?Number(pair[1]).toString(2).padStart(4,0).split('').map(Number):(pair[0]==pair[0].toUpperCase())?(Number(pair.slice(1))*10):Number(pair.slice(1));
+            let value=(key=="d")?Number(pair[1]).toString(2).split('').map(Number).reverse():(pair[0]==pair[0].toUpperCase())?(Number(pair.slice(1))*10):Number(pair.slice(1));
             if (key=='h'){key='x';value*=-1;}
             if (key=='k'){key='y';value*=-1;}
             obj[key]=value;});
         if (!segment.includes("c")&&!segment.includes("C"))obj.c=10;
         if (!segment.includes("S")&&!segment.includes("s"))obj.s=0;
-        if (!segment.includes("d"))obj.d=[0,0,0,0];
+        if (!segment.includes("d"))obj.d=[0,0,0];
         if (!segment.includes("i")&&!segment.includes("I"))obj.i=obj.c;
         return obj;
     });}
@@ -509,8 +518,7 @@ function updateBD(){
         document.getElementById('bDToggle').innerHTML='Yes';
     } else document.getElementById('bDToggle').innerHTML='No';
     if (editBDId==1) document.getElementById('BlockData').innerHTML='Pushable';
-    if (editBDId==2) document.getElementById('BlockData').innerHTML='Powerup';
-    if (editBDId==3) document.getElementById('BlockData').innerHTML='Breakable';}
+    if (editBDId==2) document.getElementById('BlockData').innerHTML='Breakable';}
 function unSizedLevel(){
     return objects.map(o=>Object.fromEntries(Object.entries({...o,x:o.x/s,y:o.y/s,n:undefined,m:undefined,z:undefined}).filter(([_,V])=>V!==undefined)));
 }
@@ -528,6 +536,17 @@ function damagePlayer() {
         p.invincible=90;
     } else deathTimer=1;}
 let crouch=0;
+function drawMario(mario) {
+    ctx.save();
+    if (p.vx!=0) animation.d=Math.sign(p.vx);
+    ctx.translate(mario.x+c.x-Math.min(animation.d,0)*11*s-3.5*s,mario.y+c.y);
+    ctx.scale(animation.d,1);
+    if (!jump) {ctx.drawImage(marioHimself,5*16,32,16,16,0,-2*s,mario.h*s+2*s,mario.h*s+2*s);
+    } else if (p.vx>0&&(keyAPressed||keyLeftPressed)||p.vx<0&&(keyDPressed||keyRightPressed)&&!(keyAPressed||keyLeftPressed)) {ctx.drawImage(marioHimself,4*16,32,16,16,0,-2*s,mario.h*s+2*s,mario.h*s+2*s);
+    } else if (p.vx!=0) {ctx.drawImage(marioHimself,16*(3-Math.floor(fCT%12/4)),32,16,16,0,-2*s,mario.h*s+2*s,mario.h*s+2*s);
+    } else ctx.drawImage(marioHimself,0,32,16,16,0,-2*s,mario.h*s+2*s,mario.h*s+2*s);
+    ctx.restore();
+}
 function drawJerry(jerry) {
     ctx.save();
     if (p.vx!=0) animation.d=Math.sign(p.vx);
@@ -564,7 +583,7 @@ function drawJerry(jerry) {
     
     ctx.restore();}
 function setStartPos() {
-    cI=objects.findIndex(o=>o.id==51&&o.s%2==1);
+    cI=objects.findIndex(o=>o.id==51&&o.activated==1);
     if(cI!=-1) {
         p.startX=objects[cI].x+objects[cI].i*s/2-p.w*s/2;
         p.startY=objects[cI].y+objects[cI].i*s/2-p.h*s/2;
@@ -573,34 +592,46 @@ function setStartPos() {
         if (sP) {
             p.startX=sP.x+sP.i/2*s-s*p.w/2;
             p.startY=sP.y+sP.i/2*s-s*p.h/2;} else {p.startX=0;p.startY=0;}}}
-function overlapping(o2,o1){
+function overlapping(o2,o1,touch=false){
+    if (touch) return (o1.x+o1.c*s>=o2.x&&o1.x<=o2.x+(o2.w||o2.c)*s&&o1.y+o1.c*s>=o2.y&&o1.y<=o2.y+(o2.h||o2.c)*s);
     return (o1.x+o1.c*s>o2.x&&o1.x<o2.x+(o2.w||o2.c)*s&&o1.y+o1.c*s>o2.y&&o1.y<o2.y+(o2.h||o2.c)*s);
 }
 function setMessage(text,color,time=99){messages.push({text:text,color:color,time:time});}
 function outOfBounds(o) {
     return (o.x+(o.w||o.i)*s<bounds.xMin||o.x>bounds.xMax||o.y+(o.h||o.i)*s<bounds.yMin||o.y>bounds.yMax);
 }
+function getMoveBlocks(channel) {
+    if (objects.some(o=>o.id==38&&o.s-o.s%2==editChannel*2&&o.w==0)) {
+        if (objects.some(o=>o.id==38&&o.s-o.s%2==editChannel*2&&o.w==1)) {
+            if (objects.some(o=>o.id==38&&o.s-o.s%2==editChannel*2&&o.w==2)) { return 3;
+            } else return 2;
+        } else return 1;
+    } else return 0;
+}
 
 let won=false;
 let fCT=0;//total frames
 let noEditLevel=false;
-let mode=1;
+let mode=3;
+let boss=0;
 let screenHeightBlocks=16;//blocks (10px) that fit height of canvas
 let s=canvas.height/screenHeightBlocks/10;//size of one pixel
 let p={x:0,y:0,vx:2,vy:0,vMax:1,jumpPower:2.5,w:4,h:8,startX:0,startY:0,invincible:0,Super:0,gravity:s/8,G_Max:4,crouching:false,friction:0};
+if (mode==2) p.gravity=s/6;
 let p1={...p};
 let fat={a:0,b:0,c:0};//screen shake when character is on shrooms
 let animation={j:0,l:0,w:0,d:1}//jump time, land time, walk time, direction facing
 let c={x:0,y:0,xMin:0,xMax:0,yMin:0,yMax:0,vx:0,vy:0,x2:0,y2:0,zDefault:1,z:1};//camera pos
 let coins=0;
 let keys=0;
+let marioJumpPower=0;
 let deathTimer=0;
 let weapon=0;
 let weaponCooldown=0;
 let portalCooldown=0;
 let jump=false;//if can jump
 let coyote=false;
-let channels=[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+let channels=[],channelsLast=[];
 let editObjId=0;//for level editor
 let editCollision=2;//0: forced no, 1: forced yes, 2: auto (getCollision(id))
 let editSize=10;//size of block image
@@ -609,7 +640,7 @@ let editGridSize=10;
 let editState=0;
 let editChannel=0;
 let editRotation=0;
-let editBlockData=[0,0,0,0];//cull, push,powerup,break
+let editBlockData=[0,0,0];//cull,push,break
 let editBDId=1;//break,move,powerup
 let editBlockColor="#000000";
 let backgroundColor="rgb(141,255,163)";
@@ -642,34 +673,94 @@ ctx.imageSmoothingEnabled=false;
 ctx.fillStyle=backgroundColor;
 ctx.fillRect(0,0,canvas.width,canvas.height);
 
+//special control blocks
+if (mode>0) {
+    let reseter=objects.filter(o=>o.id==35&&o.s%2==1)[0];
+    if (reseter) {
+        objects=toObjects(previousObjects[0]);
+        others.length=0;
+        objects=objects.map(o=>Object.fromEntries(Object.entries({...o,y:(o.id>=11&&o.id<=14||o.id>=62&&o.id<=65)?o.y+s:(o.id==80)?o.y+s*3:(o.id==82)?o.y+s*2:o.y,x:(o.id>=11&&o.id<=14||o.id>=62&&o.id<=65)?o.x+s:(o.id==80)?o.x+s*3:(o.id==82)?o.x+s*2:o.x}).filter(([_,v])=>v!==undefined)));
+        channels=channels.map(c=>{return Math.max(0,c)});
+        channelsLast=[...channels];}
+    if (objects.some(o=>o.id==36&&o.s%2==1)) {
+        fCT=0;
+        objects[objects.findIndex(o=>o.id==36&&o.s%2==1)].s-=1;}
+    if (objects.some(o=>o.id==37&&o.s%2==1)) {
+        keys=0;coins=0;p={...p1,x:p.x,y:p.y,vx:p.vx,vy:p.vy};
+        objects[objects.findIndex(o=>o.id==37&&o.s%2==1)].s-=1;}
+    
+    let deleters=objects.filter(o=>o.id==34);
+    for (let i=0;i<deleters.length;i++){
+        let O=deleters[i];
+        if (O.s%2==0) {
+            let toUnDelete=others.filter(o=>o.deleted&&o.s-o.s%2==O.s-O.s%2);
+            if (toUnDelete.length>0) objects.push(...toUnDelete.map(o=>Object.fromEntries(Object.entries({...o,deleted:undefined}).filter(([_,V])=>V!==undefined))));
+            for (let j=0;j<toUnDelete.length;j++){others=others.filter(o=>o!=toUnDelete[j]);}
+        } else {
+            let toDelete=objects.filter(o=>o.id!=34&&o.id!=33&&o.id!=32&&o.s-o.s%2==O.s-O.s%2&&o.id!=66);
+            for (let j=0;j<toDelete.length;j++){objects=objects.filter(o=>o!=toDelete[j]);}
+            if (toDelete.length>0) others.push(...toDelete.map(o=>Object.fromEntries(Object.entries({...o,deleted:true}))));}
+    }
+    
+    let movers=objects.filter(o=>o.id==38&&o.w==0&&o.s>1&&o.s%2==1);
+    for (let i=0;i<movers.length;i++){
+        let oFrom=movers[i];
+        let oTo=objects.filter(o=>o.id==38&&o.w==1&&o.s>1&&o.s%2==1&&o.s-o.s%2==oFrom.s-oFrom.s%2)[0];
+        if (oTo) {
+            if (!oFrom.xOrigin){oFrom.xOrigin=oFrom.x;oFrom.yOrigin=oFrom.y;}
+            let speedControlBlock=objects.filter(o=>o.id==38&&o.w==2&&o.s>1&&o.s%2==1&&o.s-o.s%2==oFrom.s-oFrom.s%2)[0];
+            let moveSpeed=(speedControlBlock)?((speedControlBlock.x-oFrom.xOrigin)**2+(speedControlBlock.y-oFrom.yOrigin)**2)**0.5/60:s/6;
+            let moveAngle=Math.atan2(oTo.x-oFrom.xOrigin,oTo.y-oFrom.yOrigin);
+            let movedPlayer=false;
+            if (((oTo.x-oFrom.x)**2+(oTo.y-oFrom.y)**2)**0.5<moveSpeed){
+                objects=objects.filter(o=>o!=oFrom&&o!=oTo);
+                objects=objects.map(o=>{if (o.s>1&&o.s-o.s%2==oFrom.s-oFrom.s%2){if (o.c!=0&&!movedPlayer&&p.x+p.w*s>o.x&&p.x<o.x+o.c*s&&p.y+p.h*s+p.vy>=o.y+moveSpeed*Math.cos(moveAngle)&&p.y+p.h*s<=o.y&&moveSpeed*Math.cos(moveAngle)<0) {p.y+=oTo.y-oFrom.y;movedPlayer=true;p.vy=moveSpeed*Math.cos(moveAngle);} return (o.id==38&&o.w>0&&o.s>1&&o.s%2==1)?{...o}:{...o,x:o.x+oTo.x-oFrom.x,y:o.y+oTo.y-oFrom.y};} else return {...o};});
+            } else objects=objects.map(o=>{if (o.s>1&&o.s-o.s%2==oFrom.s-oFrom.s%2){if (o.c!=0&&!movedPlayer&&p.x+p.w*s>o.x&&p.x<o.x+o.c*s&&p.y+p.h*s>=o.y+moveSpeed*Math.cos(moveAngle)&&p.y+p.h*s<=o.y&&moveSpeed*Math.cos(moveAngle)<0) {movedPlayer=true;p.y+=moveSpeed*Math.cos(moveAngle);p.x+=moveSpeed*Math.sin(moveAngle);} return (o.id==38&&o.w>0&&o.s>1&&o.s%2==1)?{...o}:{...o,x:o.x+moveSpeed*Math.sin(moveAngle),y:o.y+moveSpeed*Math.cos(moveAngle)};} else return {...o};});
+            }}
+}
+
 //culling
 let objCuld=filter(objects,o=>o.d[0]==1||o.x>=-c.x-s*10-o.i*s&&o.x<=-c.x+canvas.width+o.i*s&&o.y>=-c.y-s*10-o.i*s&&o.y<=-c.y+canvas.height+s*10+o.i*s);
 
-if (mode==1&&!won&&deathTimer==0) {
+if (mode>=1&&!won&&deathTimer==0) {
     if (keyGPressed){weapon=-(weapon-1);keyGPressed=false;}
     if (keyRPressed) {if (keyShiftPressed){toEditMode();toPlayMode();} else respawn();}
     document.getElementById("timer").innerHTML=(Math.floor(fCT/.6)%10==0)?Math.floor(fCT/.6)/100+"0s":Math.floor(fCT/.6)/100+"s";
     
-    //movement inputs
-    if (keyAPressed||keyLeftPressed){
-        p.vx=Math.max(-p.vMax*s,Math.min(-s,p.vx-s/2));
-    } else if (keyDPressed||keyRightPressed){
-        p.vx=Math.min(p.vMax*s,Math.max(s,p.vx+s/2));
-    } else p.vx=0;
-    if (jump&&(keyWPressed||keyUpPressed||keySpacePressed)) {
-        p.vy=-s*p.jumpPower;
-        animation.l=-1;animation.j=fCT;
-    }
-    if (!coyote) jump=false;
-    coyote=false;
-    
-    //more culling
+    //more culling if camara area
     for (let i=0;i<camAreas.length;i++) {
         let O=camAreas[i]; 
         if (p.x+p.w*s/2>=O.x&&p.x+p.w*s/2<O.x+O.w*s&&p.y+p.h*s/2>O.y&&p.y+p.h*s/2<O.y+O.i*s) {
             objCuld=filter(objects,o=>o.d[0]==1||o.x+o.i*s>=O.x&&o.x<=O.x+O.w*s&&o.y+o.i*s>=O.y&&o.y<=O.y+O.i*s);
             break;}}
             
+    //sprint if (mode==2){if (keyShiftPressed) {p.vMax=3;}else p.vMax=1;}
+    //movement inputs
+    if (keyAPressed||keyLeftPressed){
+        if (Math.abs(p.vx)<=p.vMax*s) {p.vx=Math.max(-p.vMax*s,p.vx-s/2);} else if (!jump) {if (p.vx>=-p.vMax*s) p.vx-=s/16;} else if (p.vx<0) {p.vx+=s/16;} else {p.vx-=s/8;}
+    } else if (keyDPressed||keyRightPressed){
+        if (Math.abs(p.vx)<=p.vMax*s) {p.vx=Math.min( p.vMax*s,p.vx+s/2);} else if (!jump) {if (p.vx<=p.vMax*s) p.vx+=s/16;} else if (p.vx>0) {p.vx-=s/16;} else {p.vx+=s/8;}
+    } else if (jump) {
+        p.vx=(Math.abs(p.vx)<s/4)?0:p.vx-s/4*Math.sign(p.vx);
+    } else if (Math.abs(p.vx)<=p.vMax*s) p.vx=0;
+    if (Math.abs(p.vx)>p.vMax*s&&!jump) p.vx-=Math.sign(p.vx)*Math.min(s/67,s*Math.abs(p.vx/p.vMax)**1.5*5);
+    //jump
+    if (mode!=2)  {   
+        if (jump&&(keyWPressed||keyUpPressed||keySpacePressed)) {
+            p.vy=-s*p.jumpPower;
+            animation.l=-1;animation.j=fCT;
+        }
+    } else { 
+        if (keyWPressed||keyUpPressed||keySpacePressed) {
+            if (marioJumpPower>=0&&jump&&marioJumpPower<3) {marioJumpPower+=1;p.vy=-s*p.jumpPower/1.5;
+            } else if (marioJumpPower>0&&marioJumpPower<16) {marioJumpPower+=1;p.vy=-s*p.jumpPower*(50-marioJumpPower)/50;
+            } else {marioJumpPower=0;}
+        } else marioJumpPower=0;
+    } 
+    if (!coyote) jump=false;
+    coyote=false;
+    
+    
     //crouch player
     if (!p.crouching&&(keySPressed||keyDownPressed)) {p.y+=crouch*s;p.h-=crouch;p.crouching=true;} else if (!(keySPressed||keyDownPressed)&&p.crouching&&!objects.some(o=>o.c!=0&&overlapping({x:p.x,y:p.y-crouch*s,h:p.h,w:p.w},o))){p.h+=crouch;p.y-=crouch*s;p.crouching=false;}
     
@@ -682,19 +773,29 @@ if (mode==1&&!won&&deathTimer==0) {
     c.x2=(fat.a/40)**2*fat.c*3/5*Math.cos(2*fCT*Math.sign(fat.a)/(40.5-fat.a)*30)/(42-fat.a)**0.6*(1+p.w*p.h/500);
     c.y2=(fat.a/40)**2*fat.c*Math.sin(fCT*Math.sign(fat.a)/(40.5-fat.a)*30)/(42-fat.a)**0.6*(1+p.w*p.h/500);}
     
+    //speed boost
+    let speedBoosts=objCuld.filter(o=>o.id==88&&overlapping(p,{...o,c:o.i},true));
+    let pVOriginal=[p.vx,p.vy];
+    for (let i=0;i<speedBoosts.length;i++){
+        let O=speedBoosts[i];
+        if (O.a==1)        { p.vx=pVOriginal[0]+p.vMax*s/2;
+        } else if (O.a==2) { p.vy=pVOriginal[1]+p.G_Max*s/6;
+        } else if (O.a==3) { p.vx=pVOriginal[0]-p.vMax*s/2;
+        } else               p.vy=pVOriginal[1]-p.G_Max*s/6;
+    }
+    
     //bullet movement
     let bullets=others.filter(o=>o.id<0);
     for(let i=0;i<bullets.length;i++) {
         let O=bullets[i];
         O.x+=O.vx;O.y+=O.vy;
-        
         let por1=objCuld.filter(o=>o.id==59&&o.x<O.x+O.i*s&&o.x+o.i*s>O.x&&o.y<O.y+O.i*s&&o.y+o.i*s>O.y)[0];
-        if (por1){let portle=objCuld.filter(o=>o.id==59&&por1.s-por1.s%4==o.s-o.s%4&&por1!=o)[0];
+        if (por1){let portle=objCuld.filter(o=>o.id==59&&por1.s-por1.s%4==Math.floor(o.s/2)+1&&por1!=o)[0];
         if (portle&&!O.inportal) {
             O.x=portle.x+portle.i*s/2-O.i*s/2;
             O.y=portle.y+portle.i*s/2-O.i*s/2;
             }O.inportal=true;} else O.inportal=false;
-        if (some(objCuld,o=>!(o.id>=11&&o.id<=12||o.id>=63&&o.id<=65||o.id>=1000||o.d[3]==1)&&o.c!=0&&O.x<o.x+s*o.c&&O.y<o.y+o.c*s&&O.x+O.i*s>o.x&&O.y+O.i*s>o.y&&o.id!=27&&o.id!=28&&o.id!=30)
+        if (some(objCuld,o=>!(o.id>=11&&o.id<=12||o.id>=63&&o.id<=65||o.id>=1000||o.d[2]==1)&&o.c!=0&&O.x<o.x+s*o.c&&O.y<o.y+o.c*s&&O.x+O.i*s>o.x&&O.y+O.i*s>o.y&&o.id!=27&&o.id!=28&&o.id!=30)
         ||outOfBounds(O)
         ||camAreas.some(o=>p.x+p.w*s/2>=o.x&&p.x+p.w*s/2<o.x+o.w*s&&p.y+p.h*s/2>o.y&&p.y+p.h*s/2<o.y+o.i*s)&&O.x<s*10+Math.min(...objCuld.map(function(o){return o.x}))
         ||camAreas.some(o=>p.x+p.w*s/2>=o.x&&p.x+p.w*s/2<o.x+o.w*s&&p.y+p.h*s/2>o.y&&p.y+p.h*s/2<o.y+o.i*s)&&O.y<s*10+Math.min(...objCuld.map(function(o){return o.y}))
@@ -717,19 +818,21 @@ if (mode==1&&!won&&deathTimer==0) {
     let pushableObjs=filter(objCuld,o=>o.d[1]==1);
     for(let i=0;i<pushableObjs.length;i++) {
         let O=pushableObjs[i];
-        if (O.s==0) {
-            if (O.x==p.x+p.w*s&&O.y<p.y+s*p.h&&O.y+s*O.c>p.y&&!some(objCuld,o=>o.y<O.y+s*O.c&&o.y+s*o.c>O.y&&o.x==O.x+O.c*s&&o.id!=28&&o.id!=29&&o.id!=27)) {O.x+=s;O.s=3;continue;}
-            if (O.x+O.c*s==p.x&&O.y<p.y+s*p.h&&O.y+s*O.c>p.y&&!some(objCuld,o=>o.y<O.y+s*O.c&&o.y+s*o.c>O.y&&O.x==o.x+o.c*s&&o.id!=28&&o.id!=29&&o.id!=27)) {O.x-=s;O.s=3;continue;}
-            if (O.y==p.y+p.h*s&&O.x<p.x+s*p.w&&O.x+s*O.c>p.x&&!some(objCuld,o=>o.x<O.x+s*O.c&&o.x+s*o.c>O.x&&o.y==O.y+O.c*s&&o.id!=28&&o.id!=29&&o.id!=27)) {O.y+=s;O.s=3;continue;}
-            if (O.y+O.c*s==p.y&&O.x<p.x+s*p.w&&O.x+s*O.c>p.x&&!some(objCuld,o=>o.x<O.x+s*O.c&&o.x+s*o.c>O.x&&O.y==o.y+o.c*s&&o.id!=28&&o.id!=29&&o.id!=27)) {O.y-=s;O.s=3;continue;}
-        } else O.s=Math.max(0,O.s-1);}
+        if (!O.cD)O.cD=0;//cooldown
+        if (O.cD==0) {
+            if (O.x==p.x+p.w*s&&O.y<p.y+s*p.h&&O.y+s*O.c>p.y&&!some(objCuld,o=>o.y<O.y+s*O.c&&o.y+s*o.c>O.y&&o.x==O.x+O.c*s&&o.id!=28&&o.id!=29&&o.id!=27)) {O.x+=s;O.cD=3;continue;}
+            if (O.x+O.c*s==p.x&&O.y<p.y+s*p.h&&O.y+s*O.c>p.y&&!some(objCuld,o=>o.y<O.y+s*O.c&&o.y+s*o.c>O.y&&O.x==o.x+o.c*s&&o.id!=28&&o.id!=29&&o.id!=27)) {O.x-=s;O.cD=3;continue;}
+            if (O.y==p.y+p.h*s&&O.x<p.x+s*p.w&&O.x+s*O.c>p.x&&!some(objCuld,o=>o.x<O.x+s*O.c&&o.x+s*o.c>O.x&&o.y==O.y+O.c*s&&o.id!=28&&o.id!=29&&o.id!=27)) {O.y+=s;O.cD=3;continue;}
+            if (O.y+O.c*s==p.y&&O.x<p.x+s*p.w&&O.x+s*O.c>p.x&&!some(objCuld,o=>o.x<O.x+s*O.c&&o.x+s*o.c>O.x&&O.y==o.y+o.c*s&&o.id!=28&&o.id!=29&&o.id!=27)) {O.y-=s;O.cD=3;continue;}
+        } else O.cD=Math.max(0,O.cD-1);}
     
     //moving blocks
     let movingBlocks=filter(objCuld,o=>o.id==68||o.id>=83&&o.id<=84);
     for(let i=0;i<movingBlocks.length;i++) {
         let O=movingBlocks[i];
+            if (!O.dir) O.dir=O.s%2*2-1;
         if (O.id==68) {
-            O.vy=(O.s%2==1)?-s*.33:s*.33;
+            O.vy=s*.33*O.dir*(1-2*channels[Math.floor(O.s/2)-1]||1);
             let yC=filter(objCuld,o=>o.x+o.c*s>O.x&&o.x<O.x+O.c*s&&o.y>=O.y-o.c*s+O.vy&&o.y<=O.y+O.c*s+O.vy&&O!=o&&o.id!=28&&o.id!=29&&o.id!=27&&!overlapping(O,o)).sort((a,b)=>(O.vy<0)?(b.y+b.c*s-a.y-a.c*s):(a.y-b.y))[0];
             if (yC) {
                 O.y=(O.vy<0)?yC.y+yC.c*s:yC.y-O.c*s;
@@ -737,10 +840,10 @@ if (mode==1&&!won&&deathTimer==0) {
                 O.y=(O.vy<0)?p.y+p.h*s:p.y-O.c*s;
             } else O.y+=O.vy;
         } else if (O.id>=83&&O.id<=84) {
-            O.vx=(O.s%2==1)?-s*.25:s*.25;
+            O.vx=s*.25*O.dir*(2*channels[Math.floor(O.s/2)-1]-1||1);
             let xC=filter(objCuld,o=>o.y+o.c*s>O.y&&o.y<O.y+O.c*s&&o.x>=O.x-o.c*s+O.vx&&o.x<=O.x+O.c*s+O.vx&&O!=o&&o.id!=28&&o.id!=29&&o.id!=27&&!overlapping(O,o)).sort((a,b)=>(O.vx<0)?(b.x+b.c*s-a.x-a.c*s):(a.x-b.x))[0];
             if (xC) {
-                O.x=(O.vx<0)?xC.x+xC.c*s:xC.x-O.c*s;O.s=(O.s%4<2)?O.s+2:O.s-2;
+                O.x=(O.vx<0)?xC.x+xC.c*s:xC.x-O.c*s;O.dir*=-1;
             } else if (O.x+O.c*s+O.vx>=p.x&&O.x+O.vx<=p.x+p.w*s&&O.y<p.y+p.h*s&O.y+O.c*s>p.y) {
                 O.x=(O.vx<0)?p.x+p.w*s:p.x-O.c*s;
             } else O.x+=O.vx;
@@ -748,7 +851,7 @@ if (mode==1&&!won&&deathTimer==0) {
         }
         
         let por1=objCuld.filter(o=>o.id==59&&o.x<O.x+O.c*s&&o.x+o.i*s>O.x&&o.y<O.y+O.c*s&&o.y+o.i*s>O.y)[0];
-        if (por1){let portle=objCuld.filter(o=>o.id==59&&por1.s-por1.s%4==o.s-o.s%4&&por1!=o)[0];
+        if (por1){let portle=objCuld.filter(o=>o.id==59&&por1.s-por1.s%2==o.s-o.s%2&&por1!=o)[0];
         if (portle&&!O.inportal) {
             O.x=portle.x+portle.i*s/2-O.i*s/2;
             O.y=portle.y+portle.i*s/2-O.i*s/2;
@@ -758,46 +861,48 @@ if (mode==1&&!won&&deathTimer==0) {
     let movingEnemies=filter(objCuld,o=>o.id==11||o.id==12||o.id==63||o.id==64||o.id==65);
     for(let i=0;i<movingEnemies.length;i++) {
         let O=movingEnemies[i];
+        if (!O.dir) O.dir=O.s%2*2-1;
         if (O.id==64){
-            O.vy=(O.s%2==0)?s*.8:-s*.8;
-            let yC=filter(objCuld,o=>o.x+o.c*s>O.x&&o.x<O.x+O.c*s&&o.y+o.c*s>=O.y+O.vy&&o.y<=O.y+O.c*s+O.vy&&O!=o&&o.id!=28&&o.id!=29&&o.id!=30&&!overlapping(o,O)).sort((a,b)=>(O.vy<0)?(b.y+b.c*s-a.y-a.c*s):(a.y-b.y))[0];
+            O.vy=s*.8*O.dir*(2*channels[Math.floor(O.s/2)-1]-1||0);
+            let yC=filter(objCuld,o=>o.c!=0&&o.x+o.c*s>O.x&&o.x<O.x+O.c*s&&o.y+o.c*s>=O.y+O.vy&&o.y<=O.y+O.c*s+O.vy&&O!=o&&o.id!=28&&o.id!=29&&o.id!=30&&!overlapping(o,O)).sort((a,b)=>(O.vy<0)?(b.y+b.c*s-a.y-a.c*s):(a.y-b.y))[0];
             if (yC) {
                 O.y=(O.vy<0)?yC.y+yC.c*s:yC.y-O.c*s;
-                O.s=-(O.s-1);
+                O.dir*=-1;
             } else O.y+=O.vy;
         } else if (O.id==63){
-            O.vx=(O.s%2==0)?s*.8:-s*.8;
-            let xC=filter(objCuld,o=>o.y+o.c*s>O.y&&o.y<O.y+O.c*s&&o.x+o.c*s>=O.x+O.vx&&o.x<=O.x+O.c*s+O.vx&&O!=o&&o.id!=28&&o.id!=29&&o.id!=30&&!overlapping(o,O)).sort((a,b)=>(O.vx<0)?(b.x+b.c*s-a.x-a.c*s):(a.x-b.x))[0];
+            O.vx=s*.8*O.dir*(2*channels[Math.floor(O.s/2)-1]||0);
+            let xC=filter(objCuld,o=>o.c!=0&&o.y+o.c*s>O.y&&o.y<O.y+O.c*s&&o.x+o.c*s>=O.x+O.vx&&o.x<=O.x+O.c*s+O.vx&&O!=o&&o.id!=28&&o.id!=29&&o.id!=30&&!overlapping(o,O)).sort((a,b)=>(O.vx<0)?(b.x+b.c*s-a.x-a.c*s):(a.x-b.x))[0];
             if (xC) {
                 O.x=(O.vx<0)?xC.x+xC.c*s:xC.x-O.c*s;
-                O.s=-(O.s-1);
+                O.dir*=-1;
             } else O.x+=O.vx;
         } else if (O.id!=65) {
             if (!O.vy)O.vy=0;if (!O.vx)O.vx=s*.35;
-            let yC=filter(objCuld,o=>o.x+o.c*s>O.x&&o.x<O.x+O.c*s&&o.y>=O.y+O.c*s&&o.y<=O.y+O.c*s+O.vy&&O!=o&&o.id!=28&&o.id!=29&&o.id!=30&&!overlapping(o,O)).sort((a,b)=>(O.vy<0)?(b.y+b.c*s-a.y-a.c*s):(a.y-b.y))[0];
+            let yC=filter(objCuld,o=>o.c!=0&&o.x+o.c*s>O.x&&o.x<O.x+O.c*s&&o.y>=O.y+O.c*s&&o.y<=O.y+O.c*s+O.vy&&O!=o&&o.id!=28&&o.id!=29&&o.id!=30&&!overlapping(o,O)).sort((a,b)=>(O.vy<0)?(b.y+b.c*s-a.y-a.c*s):(a.y-b.y))[0];
             if (yC) {
                 O.y=(O.vy<0)?yC.y+yC.c*s:yC.y-O.c*s;O.vy=0;
             } else O.y+=O.vy;
             O.vy+=s/4;
-            let xC=filter(objCuld,o=>o.y+o.c*s>O.y&&o.y<O.y+O.c*s&&o.x+o.c*s>=O.x+O.vx&&o.x<=O.x+O.c*s+O.vx&&O!=o&&o.id!=28&&o.id!=29&&o.id!=30&&!overlapping(o,O)).sort((a,b)=>(O.vx<0)?(b.x+b.c*s-a.x-a.c*s):(a.x-b.x))[0];
+            let xC=filter(objCuld,o=>o.c!=0&&o.y+o.c*s>O.y&&o.y<O.y+O.c*s&&o.x+o.c*s>=O.x+O.vx&&o.x<=O.x+O.c*s+O.vx&&O!=o&&o.id!=28&&o.id!=29&&o.id!=30&&!overlapping(o,O)).sort((a,b)=>(O.vx<0)?(b.x+b.c*s-a.x-a.c*s):(a.x-b.x))[0];
             if (xC) {
                 O.x=(O.vx<0)?xC.x+xC.c*s:xC.x-O.c*s;
                 O.vx*=-1;
             } else O.x+=O.vx;}
         //teleport through portals
         let por1=objCuld.filter(o=>o.id==59&&o.x<O.x+O.c*s&&o.x+o.i*s>O.x&&o.y<O.y+O.c*s&&o.y+o.i*s>O.y)[0];
-        if (por1){let portle=objCuld.filter(o=>o.id==59&&por1.s-por1.s%4==o.s-o.s%4&&por1!=o)[0];
+        if (por1){let portle=objCuld.filter(o=>o.id==59&&por1.s-por1.s%2==o.s-o.s%2&&por1!=o)[0];
         if (portle&&!O.inportal) {
             O.x=portle.x+portle.i*s/2-O.i*s/2;
             O.y=portle.y+portle.i*s/2-O.i*s/2;
             }O.inportal=true;} else if (O.inportal)O.inportal=false;
         //kill
         if (p.invincible>0&&O.x-s<p.x+s*p.w&&O.x-s+s*O.i>p.x&&O.y-s<p.y+p.h*s&&O.y-s+s*O.i>p.y
-        ||outOfBounds(O)
         ||some(others,o=>o.x<O.x+s*O.c&&o.y<O.y+O.c*s&&(o.id==-1&&o.x+o.i*s>O.x&&o.y+o.i*s>O.y
         ||o.id==69.1&&o.x+o.i/8*6*s>O.x&&o.y+o.i/8*2*s>O.y||o.id==69.2&&o.x+o.i/8*2*s>O.x&&o.y+o.i/8*6*s>O.y))
+        ||outOfBounds(O)
         ||objCuld.some(o=>o.id==1201&&overlapping(o,O)&&o.vy!=0)) {
             O.id*=100;O.vy=-2*s;}
+        if (outOfBounds(O)) {objects=filter(objects,o=>o!=O);}
         }
     
     //dead enemies
@@ -806,10 +911,10 @@ if (mode==1&&!won&&deathTimer==0) {
         let O=deadEnemies[i];
         if (!O.vy) O.vy=0;
         O.y+=O.vy;
-        O.x+=(O.s%4<2)?-s/2:s/2;
+        O.x+=(O.s%2<1)?-s/2:s/2;
         O.vy+=s/4;
         let por1=objCuld.filter(o=>o.id==59&&o.x<O.x+O.c*s&&o.x+o.i*s>O.x&&o.y<O.y+O.c*s&&o.y+o.i*s>O.y)[0];
-        if (por1){let portle=objCuld.filter(o=>o.id==59&&por1.s-por1.s%4==o.s-o.s%4&&por1!=o)[0];
+        if (por1){let portle=objCuld.filter(o=>o.id==59&&por1.s-por1.s%2==o.s-o.s%2&&por1!=o)[0];
         if (portle&&!O.inportal) {
             O.x=portle.x+portle.i*s/2-O.i*s/2;
             O.y=portle.y+portle.i*s/2-O.i*s/2;
@@ -821,20 +926,21 @@ if (mode==1&&!won&&deathTimer==0) {
     let deadGoombas=filter(objCuld,o=>o.id==1101);
     for(let i=0;i<deadGoombas.length;i++) {
         let O=deadGoombas[i];
-        O.s+=.1;
-        if (O.s>2.8) objects=filter(objects,o=>o!=O);}
+        if (!O.timer)O.timer=2.8;
+        O.timer-=.1;
+        if (O.timer<0) objects=filter(objects,o=>o!=O);}
     
     //mario shells
     let deadKTs=filter(objCuld,o=>o.id==1201);
     for(let i=0;i<deadKTs.length;i++) {
         let O=deadKTs[i];
             if (!O.vy) O.vy=0;
-            let yC2=filter(objCuld,o=>o.x+o.c*s>O.x&&o.x<O.x+O.c*s&&o.y>=O.y+s*O.c&&o.y<=O.y+s*O.c+O.vy&&O!=o&&o.id!=28&&o.id!=29&&o.id!=30&&!overlapping(o,O)).sort((a,b)=>(O.vy<0)?(b.y+b.c*s-a.y-a.c*s):(a.y-b.y))[0];
+            let yC2=filter(objCuld,o=>o.c!=0&&o.x+o.c*s>O.x&&o.x<O.x+O.c*s&&o.y>=O.y+s*O.c&&o.y<=O.y+s*O.c+O.vy&&O!=o&&o.id!=28&&o.id!=29&&o.id!=30&&!overlapping(o,O)).sort((a,b)=>(O.vy<0)?(b.y+b.c*s-a.y-a.c*s):(a.y-b.y))[0];
             if (yC2) {
                 O.y=yC2.y-O.c*s;O.vy=0;
             } else O.y+=O.vy;
             O.vy+=s/4;
-            let xC=filter(objCuld,o=>o.y+o.c*s>O.y&&o.y<O.y+O.c*s&&(O.vx>0&&o.x>=O.x+O.c*s&&o.x<O.x+O.c*s+O.vx||O.vx<0&&o.x+o.c*s<=O.x&&o.x+o.c*s>O.x+O.vx)&&o.id!=28&&o.id!=29&&o.id!=30&&o.id!=11&&o.id!=12&&o.id!=63&&o.id!=64&&o.id!=65&&!overlapping(o,O)).sort((a,b)=>(O.vx<0)?(b.x+b.c*s-a.x-a.c*s):-(b.x-a.x))[0];
+            let xC=filter(objCuld,o=>o.c!=0&&o.y+o.c*s>O.y&&o.y<O.y+O.c*s&&(O.vx>0&&o.x>=O.x+O.c*s&&o.x<O.x+O.c*s+O.vx||O.vx<0&&o.x+o.c*s<=O.x&&o.x+o.c*s>O.x+O.vx)&&o.id!=28&&o.id!=29&&o.id!=30&&o.id!=11&&o.id!=12&&o.id!=63&&o.id!=64&&o.id!=65&&!overlapping(o,O)).sort((a,b)=>(O.vx<0)?(b.x+b.c*s-a.x-a.c*s):-(b.x-a.x))[0];
             if (O.vx>0) {if (xC) {O.x=xC.x-O.c*s;O.vx*=-1;} else {O.x+=O.vx;}
             } else if (O.vx<0) {if (xC) {O.x=xC.x+xC.c*s;O.vx*=-1;} else {O.x+=O.vx;}
             }
@@ -847,7 +953,7 @@ if (mode==1&&!won&&deathTimer==0) {
             } else if (O.x<p.x+p.w*s&&O.x+O.c*s>p.x&&p.y+p.h*s==O.y) {O.vx=0;p.vy=-p.gravity*10;}
             
             let por1=objCuld.filter(o=>o.id==59&&o.x<O.x+O.c*s&&o.x+o.i*s>O.x&&o.y<O.y+O.c*s&&o.y+o.i*s>O.y)[0];
-            if (por1){let portle=objCuld.filter(o=>o.id==59&&por1.s-por1.s%4==o.s-o.s%4&&por1!=o)[0];
+            if (por1){let portle=objCuld.filter(o=>o.id==59&&por1.s-por1.s%2==o.s-o.s%2&&por1!=o)[0];
             if (portle&&!O.inportal) {
                 O.x=portle.x+portle.i*s/2-O.i*s/2;
                 O.y=portle.y+portle.i*s/2-O.i*s/2;
@@ -864,6 +970,7 @@ if (mode==1&&!won&&deathTimer==0) {
     for(let i=0;i<movingPowerups.length;i++) {
         let O=movingPowerups[i];
         if (!O.vy) O.vy=0;
+        if (!O.dir) O.dir=O.s%2*2-1;
         let yC=filter(objCuld,o=>o.x+o.c*s>O.x&&o.x<O.x+O.c*s&&o.y>=O.y-o.c*s+O.vy&&o.y<=O.y+s*O.c+O.vy&&O!=o&&o.id!=28&&o.id!=29&&o.id!=27&&!overlapping(o,O)).sort((a,b)=>(O.vy<0)?(b.y+b.c*s-a.y-a.c*s):(a.y-b.y))[0];
         if (yC) {
             O.y=(O.vy<0)?yC.y+yC.c*s:yC.y-O.c*s;
@@ -871,11 +978,11 @@ if (mode==1&&!won&&deathTimer==0) {
         } else {
             O.y+=O.vy;}
         O.vy+=(O.id==13)?s/6:s/4;
-        O.vx=(O.s%2==0)?s:-s;
+        O.vx=O.dir*s;
         let xC=filter(objCuld,o=>o.y+o.c*s>O.y&&o.y<O.y+O.c*s&&o.x+o.c*s>=O.x+O.vx&&o.x<=O.x+O.c*s+O.vx&&O!=o&&o.id!=28&&o.id!=29&&o.id!=27&&!overlapping(o,O)).sort((a,b)=>(O.vx<0)?(b.x+b.c*s-a.x-a.c*s):(a.x-b.x))[0];
         if (xC) {
             O.x=(O.vx<0)?xC.x+xC.c*s:xC.x-O.c*s;
-            O.s=-(O.s-1);
+            O.dir*=-1;
         } else O.x+=O.vx;
         if (outOfBounds(O)){
             objects=filter(objects,o=>o!=O);
@@ -887,16 +994,18 @@ if (mode==1&&!won&&deathTimer==0) {
     let laserSummoners=filter(objCuld,o=>o.id==69);//nice
     for(let i=0;i<laserSummoners.length;i++) {
         let O=laserSummoners[i];
-        if (fCT%150==0||O.s%2==1){
-        if (O.s%2==1)O.s=(O.s%4>=2)?O.s-O.s%4:O.s-O.s%4+2;
-        others.push({x:O.x+O.i/8*s,y:O.y+O.i/8*3*s,id:69.1,vx:s*p.vMax,vy:0,i:O.i});
-        others.push({x:O.x+O.i/8*s,y:O.y+O.i/8*3*s,id:69.1,vx:-s*p.vMax,vy:0,i:O.i});
-        others.push({x:O.x+O.i/8*3*s,y:O.y+O.i/8*s,id:69.2,vx:0,vy:s*p.vMax,i:O.i});
-        others.push({x:O.x+O.i/8*3*s,y:O.y+O.i/8*s,id:69.2,vx:0,vy:-s*p.vMax,i:O.i});}}
+        if (fCT%150==0||O.s!=O.sLast){
+            if (O.s!=O.sLast)O.sLast=O.s;
+            others.push({x:O.x+O.i/8*s,y:O.y+O.i/8*3*s,id:69.1,vx:s*p.vMax,vy:0,i:O.i});
+            others.push({x:O.x+O.i/8*s,y:O.y+O.i/8*3*s,id:69.1,vx:-s*p.vMax,vy:0,i:O.i});
+            others.push({x:O.x+O.i/8*3*s,y:O.y+O.i/8*s,id:69.2,vx:0,vy:s*p.vMax,i:O.i});
+            others.push({x:O.x+O.i/8*3*s,y:O.y+O.i/8*s,id:69.2,vx:0,vy:-s*p.vMax,i:O.i});
+            }
+        O.sLast=O.s;}
     let lasers=filter(others,o=>o.id-o.id%1==69);
         for(let i=0;i<lasers.length;i++) {
         let O=lasers[i];
-        if (some(objCuld,o=>o.d[3]!=1&&o.c!=0&&o.id!=69&&O.x<o.x+s*o.c&&O.y<o.y+o.c*s&&(O.id==69.1&&O.x+O.i/8*6*s>o.x&&O.y+O.i/8*2*s>o.y||O.id==69.2&&O.x+O.i/8*2*s>o.x&&O.y+O.i/8*6*s>o.y)&&o.id!=27&&o.id!=28&&o.id!=30)
+        if (some(objCuld,o=>o.d[2]!=1&&o.c!=0&&o.id!=69&&O.x<o.x+s*o.c&&O.y<o.y+o.c*s&&(O.id==69.1&&O.x+O.i/8*6*s>o.x&&O.y+O.i/8*2*s>o.y||O.id==69.2&&O.x+O.i/8*2*s>o.x&&O.y+O.i/8*6*s>o.y)&&o.id!=27&&o.id!=28&&o.id!=30)
         ||outOfBounds(O)){
             others=filter(others,o=>o!=O);}
         O.x+=O.vx;O.y+=O.vy;
@@ -928,7 +1037,7 @@ if (mode==1&&!won&&deathTimer==0) {
     } else {
         p.x+=p.vx;
         p.y+=p.vy;}
-    p.vy=Math.min(p.vy+p.gravity/(1+p.friction),s*p.G_Max/(1+p.friction));//gravity
+    p.vy=Math.max(-p.friction*s/4+Math.abs(Math.sign(p.friction))*100*s-100*s,Math.min(p.vy+p.gravity/(1+p.friction),s*p.G_Max/(1+p.friction)));//gravity
 
     //friction block detection
     p.friction=0;
@@ -947,13 +1056,14 @@ if (mode==1&&!won&&deathTimer==0) {
     }
 
     //stomp on enemies
-    let stompedEnemies=filter(objCuld,o=>(o.id==11||o.id==12||o.id==63||o.id==64||o.id==65)&&o.x<p.x+p.w*s+s&&o.x+o.c*s-s>p.x&&p.y+p.h*s>=o.y-s&&p.y+p.h*s<=o.y);
+    let stompedEnemies=filter(objCuld,o=>(o.id==11||o.id==12||o.id==63||o.id==64||o.id==65)&&overlapping(p,o,true)&&p.y+p.h*s<=o.y+Math.max(s,o.i*s/5));
     for(let i=0;i<stompedEnemies.length&&p.invincible==0;i++) {
         let O=stompedEnemies[i];
         if (O.id==11||O.id==12){
             var O2={...O};
-            O2.id=O2.id*100+1;O2.c=(O.id==11)?0:O2.c/2;O2.s=0;
-            if (O.id==12) {O2.x+=2*s;O2.y+=3*s;O2.vx=0;}
+            O2.id=O2.id*100+1;
+            if (O.id==12) {O2.x+=2*s;O2.y+=3*s;O2.vx=0;O2.c/=2;
+            } else {O2.c=0;}
             objects.push(O2);
         }
         objects=filter(objects,o=>o!=O);
@@ -961,14 +1071,15 @@ if (mode==1&&!won&&deathTimer==0) {
         p.vy=-p.gravity*12;}
     
     //Breakable Blocks
-    let breakableObjs=filter(objCuld,o=>o.d[3]==1)
+    let breakableObjs=filter(objCuld,o=>o.d[2]==1)
         for(let i=0;i<breakableObjs.length;i++) {
             let O=breakableObjs[i];
             if (O.x<p.x+s*p.w&&O.x+s*O.c>p.x&&p.y==O.y+O.c*s
             ||some(objCuld,o=>o.id==1201&&O.y+s<o.y+o.c*s&&O.y+O.c*s>=o.y&&(o.x==O.x+O.c*s&&o.vx<0||o.x+o.c*s==O.x&&o.vx>0))
             ||some(others,o=>o.x<O.x+s*O.c&&o.y<O.y+O.c*s&&(o.id==-1&&o.x+o.i*s>O.x&&o.y+o.i*s>O.y||o.id==69.1&&o.x+o.i/8*6*s>O.x&&o.y+o.i/8*2*s>O.y||o.id==69.2&&o.x+o.i/8*2*s>O.x&&o.y+o.i/8*6*s>O.y))) {
                 objects=filter(objects,o=>o!=O);
-                objCuld=filter(objCuld,o=>o!=O);}}
+                objCuld=filter(objCuld,o=>o!=O);
+                p.vy=0;}}
     
     //collect powerups
     if(some(objCuld,o=>o.id==13&&o.x<=p.x+s*p.w&&o.x+s*o.c>=p.x&&o.y<=p.y+p.h*s&&o.y+s*o.c>=p.y)) {
@@ -982,30 +1093,33 @@ if (mode==1&&!won&&deathTimer==0) {
             p.x-=2*s;p.y-=6*s; 
             p.Super=true;}}
     
-    //update switches
-    let switches=filter(objCuld,o=>o.id==66);
+    //update switches and triggers
+    let switches=filter(objCuld,o=>(o.id==66||o.id>=32&&o.id<=33)&&o.s>1);
     for(let i=0;i<switches.length;i++) {
         let O=switches[i];
-        let canBe=objCuld.some(o=>(o.id==68||o.id>=83&&o.id<=84||o.id==56||o.id<=12&&o.id>=11||o.id>=1000||o.id>=63&&o.id<=64)&&o.c!=0&&O.x<o.x+s*o.c&&O.x+s*O.i>o.x&&O.y<o.y+o.c*s&&O.y+s*O.i>o.y);
+        if (!O.sLast) O.sLast=O.s;
+        let canBe=objCuld.some(o=>(o.id==68||o.id>=83&&o.id<=84||o.id==56||o.id<=12&&o.id>=11||o.id>=1000||o.id>=63&&o.id<=64)&&o.c!=0&&overlapping({...O,c:O.i},o));
         if ((O.x<p.x+s*p.w&&O.x+s*O.i>p.x&&O.y<p.y+p.h*s&&O.y+s*O.i>p.y)||canBe) {
             O.s=O.s-O.s%2+1;
-        } else {O.s=O.s-O.s%2;}}
-    
-    
-    //channels
-    for (let j=0;j<channels.length;j++) {
-        if (some(switches,o=>o.s%2==1&&(o.s-o.s%4)/4==j+1)) {
-            channels[j]=1;
-        } else channels[j]=0;}
+        } else if (O.id==66){O.s=O.s-O.s%2;}
+        if (O.id==32) {
+                if (O.timer) {O.timer+=.25;
+                if (O.timer>3)objects=objects.filter(o=>o!=O);
+                }else if (O.s!=O.sLast) O.timer=.25;}
+        if (O.s!=O.sLast) {
+            O.sLast=O.s;channels[Math.floor(O.s/2)-1]=-(channels[Math.floor(O.s/2)-1]-1);
+            if (O.id==33)objects=objects.filter(o=>o!=O);
+        }}
     
     //update toggleable blocks
-    let toggleBlocks=filter(objCuld,o=>o.s>=4);
+    let toggleBlocks=filter(objCuld,o=>o.s>=2&&o.id!=66&&o.id!=32&&o.id!=33);
     for(let i=0;i<toggleBlocks.length;i++) {
         let O=toggleBlocks[i];
-        if (O.s%4<2){O.s=O.s-O.s%2+channels[Math.floor(O.s/4)-1];
-        } else O.s=O.s-O.s%2+1-channels[Math.floor(O.s/4)-1];
+        if (channels[Math.floor(O.s/2)-1]!=channelsLast[Math.floor(O.s/2)-1])
+            O.s=(O.s%2<1)?O.s+1:O.s-1;
         if (O.id==67) O.c=Math.abs(O.s%2-1)*O.i;}
-
+    channelsLast=[...channels];
+    
     //Keys
     if(some(objCuld,o=>(o.id==60)&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&o.y<p.y+p.h*s&&o.y+s*o.i>p.y)) {
         let collected0=objects.length;
@@ -1021,10 +1135,10 @@ if (mode==1&&!won&&deathTimer==0) {
     //portals
     cI=objCuld.findIndex(o=>o.id==59&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&o.y<p.y+p.h*s&&o.y+s*o.i>p.y);
     if (cI>-1) {if (portalCooldown==0){
-        cI2=objCuld.findIndex(o=>o.id==59&&objCuld[cI].s-objCuld[cI].s%4==o.s-o.s%4&&objCuld[cI]!=o);
-        if (cI2>-1) {
-            p.x=objCuld[cI2].x+objCuld[cI2].i*s/2-p.w*s/2;
-            p.y=objCuld[cI2].y+objCuld[cI2].i*s/2-p.h*s/2;
+        c2=objCuld.filter(o=>o.id==59&&Math.floor(objCuld[cI].s/2)==Math.floor(o.s/2)&&objCuld[cI]!=o).sort((a,b)=>Math.sqrt((objCuld[cI].x-a.x)**2+(objCuld[cI].y-a.y)**2)-Math.sqrt((objCuld[cI].x-b.x)**2+(objCuld[cI].y-b.y)**2))[0];
+        if (c2) {
+            p.x=c2.x+c2.i*s/2-p.w*s/2;
+            p.y=c2.y+c2.i*s/2-p.h*s/2;
             c.x=-Math.max(c.xMin,Math.min(c.xMax,p.x-canvas.width/2));
             c.y=-Math.max(c.yMin,Math.min(c.yMax,p.y-canvas.height/2));
             portalCooldown=100;}} else portalCooldown-=1;
@@ -1032,10 +1146,10 @@ if (mode==1&&!won&&deathTimer==0) {
     
     
     //checkpoint
-    cI=objCuld.findIndex(o=>o.id==51&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&o.y<p.y+p.h*s&&o.y+s*o.i>p.y&&o.s%2==0);
+    cI=objCuld.findIndex(o=>o.id==51&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&o.y<p.y+p.h*s&&o.y+s*o.i>p.y);
     if(cI>-1) {
-        objects.forEach(o=>{if (o.id==51&&o.s%2==1)o.s-=1;});
-        objCuld[cI].s+=1;}
+        objects.forEach(o=>{if (o.id==51&&o.activated==1)o.activated-=1;});
+        objCuld[cI].activated=1;}
 
     //win
     if(some(objCuld,o=>o.id==53&&o.x<p.x+s*p.w&&o.x+s*o.i>p.x&&o.y<p.y+p.h*s&&o.y+s*o.i>p.y)) {
@@ -1085,7 +1199,7 @@ if (mode==1&&!won&&deathTimer==0) {
             } 
             if (mouseW==1) {
                 editObjId=objects.findIndex(o=>o.x==X&&o.y==Y&&o.l==editLayer).id;
-            } else if (mouseW==2||editObjId>87||editObjId>69&&editObjId<75||editObjId>14&&editObjId<20||editObjId>31&&editObjId<50) {
+            } else if (mouseW==2||editSelection[0]<4&&(editObjId>88||editObjId>69&&editObjId<75||editObjId>14&&editObjId<20||editObjId>38&&editObjId<50)) {
                 objects=filter(objects,o=>!(o.x==X&&o.y==Y&&o.l==editLayer));
             } else if (editSelection[0]>-1) {
                 let O=objects[editSelection[0]];
@@ -1111,7 +1225,7 @@ if (mode==1&&!won&&deathTimer==0) {
                     y:Y,
                     id:editObjId,
                     c:getCollision(editObjId),
-                    s:(editObjId<11||editObjId>=15&&editObjId<=58||editObjId>=60&&editObjId<=62||editObjId>=75&&editObjId<=82||editObjId>=85)?0:editState*3+(editChannel+1)*4,
+                    s:editState+editChannel*2,
                     i:editSize,
                     l:editLayer,
                     d:[...editBlockData]};
@@ -1121,8 +1235,10 @@ if (mode==1&&!won&&deathTimer==0) {
                     obj.g=parseInt(editBlockColor.slice(3, 5), 16);
                     obj.b=parseInt(editBlockColor.slice(5, 7), 16);}
                 if (editObjId==31) obj.w=editSize;
+                if (editObjId==32||editObjId==33) obj.s=obj.s-obj.s%2;
                 let oI=objects.findIndex(o=>o.x==X&&o.y==Y&&o.l==editLayer);
                 if(oI!=-1&&objects[oI]!=obj)objects=objects.filter(o=>o!=objects[oI]);
+                if (editObjId==38) obj.w=getMoveBlocks(editChannel);
                 if(objects[oI]!=obj)objects.push(obj);
             }
             updateAutoTiles(X,Y);
@@ -1134,7 +1250,7 @@ if (mode==1&&!won&&deathTimer==0) {
     } else {editSelection=[-1,-1];}
 }
 //camera control
-if (mode==1) {
+if (mode>=1) {
     c.xMin=bounds.xMin;
     c.yMin=bounds.yMin+canvas.height/2;
     c.xMax=bounds.xMax-canvas.width;
@@ -1148,10 +1264,10 @@ if (mode==1) {
             c.xMax=(O.w*s<canvas.width)?c.xMin:O.x+O.w*s-canvas.width;
             c.yMax=(O.i*s<canvas.height)?c.yMin:O.y+O.i*s-canvas.height;
             objCuld=filter(objects,o=>o.d[0]==1||o.x+o.i*s>O.x&&o.x<O.x+O.w*s&&o.y+o.i*s>O.y&&o.y<O.y+O.i*s);
-            break;} 
+            break;}
         c.z=c.zDefault;
     }
-    c.vx=-Math.max(-s*20*c.z,Math.min(s*20*c.z,Math.floor((-(p.x+p.w*s/2+15*p.vx*c.z-(-c.x+canvas.width/2))/s/20)**3*10)/20*s));
+    c.vx=-Math.max(-s*20*c.z,Math.min(s*20*c.z,Math.floor((-(p.x+p.w*s/2+15*Math.max(-s*p.vMax*4,Math.min(s*p.vMax*4,p.vx))*c.z-(-c.x+canvas.width/2))/s/20)**3*10)/20*s));
     c.vy=-Math.max(-s*20*c.z,Math.min(s*20*c.z,-canvas.height/32*Math.max(0,p.vy/s/p.G_Max/c.z-.5)+Math.floor((-(p.y+p.h*s/2+Math.max(p.vy*2,0)-(-c.y+canvas.height*.7))/s/10)**3)/4*s));
     c.x=-c.x2-Math.max(c.xMin,Math.min(c.xMax,-c.x+c.vx));
     c.y=-c.y2-Math.max(c.yMin,Math.min(c.yMax,-c.y+c.vy));}
@@ -1162,13 +1278,13 @@ if (!mode==0||!keyLPressed) {
     for (let l = 0; l < 67; l++) {
         const bucket = layers[l];
         for (let j = 0, blen = bucket.length; j < blen; j++) {
-            drawObj(bucket[j],mode);}}}
+            drawObj(bucket[j],Math.min(1,mode));}}}
 
 //draw player and others
-if (mode==1) { 
+if (mode>=1) { 
     //ctx.fillStyle=(p.invincible>0&&Math.floor(fCT/6)%3)?"rgb(100,100,100,0.8)":"rgb(255,0,0)";
     //ctx.fillRect(p.x+c.x,p.y+c.y,s*p.w,s*p.h);
-    drawJerry(p);
+    if (mode>=2) {drawMario(p);} else drawJerry(p);
     for (let i=0;i<others.length;i++){
         let O=others[i];
         if (O.id==-1) {ctx.save();ctx.translate(O.x+c.x,O.y+c.y);ctx.rotate(O.a);drawRect(-O.i*s*6/2,-O.i*s/2,O.i*s*6,O.i*s,"255,41,74");ctx.restore();continue;}
@@ -1182,11 +1298,11 @@ if (mode==1) {
 if (mode==0&&keyLPressed) {
     const bucket = layers[editLayer];
     for (let j = 0, blen = bucket.length; j < blen; j++) {
-        drawObj(bucket[j],mode);}
+        drawObj(bucket[j],Math.min(1,mode));}
 } else for (let l = 67; l < 100; l++) {
     const bucket = layers[l];
     for (let j = 0, blen = bucket.length; j < blen; j++) {
-        drawObj(bucket[j],mode);}}
+        drawObj(bucket[j],Math.min(1,mode));}}
 
 
 //edit mode overlays
@@ -1261,6 +1377,7 @@ requestAnimationFrame(f);
 requestAnimationFrame(f);
 
 /* TO DO
+  - trigger, freeze, delete, move
   - add levels menu
   - better powerups 
   - better enemies
